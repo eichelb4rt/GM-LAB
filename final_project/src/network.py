@@ -1,8 +1,6 @@
 import numpy as np
 import numpy.typing as npt
-import pandas as pd
 from typing import Self
-from tests import split_train_test
 
 
 class GaussianBayesNet:
@@ -106,18 +104,3 @@ def linear_regression(x: npt.NDArray[np.float32], y: npt.NDArray[np.float32], la
     weights = np.linalg.solve(x_padded.T @ x_padded + lambda_reg * np.eye(n + 1), x_padded.T @ y)
     sigma = np.linalg.norm(x_padded @ weights - y) / np.sqrt(m)
     return weights, sigma
-
-
-def main():
-    dataset = pd.read_csv("trainset.csv").to_numpy()
-    train_set, test_set = split_train_test(dataset, 2, 0)
-    print(dataset.shape, train_set.shape, test_set.shape)
-    n = dataset.shape[1]
-    adjacency_matrix = np.full((n, n), False)
-    gbn = GaussianBayesNet(adjacency_matrix).fit(dataset)
-    print(gbn.network_parameters)
-    print(gbn.log_likelihood(dataset))
-
-
-if __name__ == "__main__":
-    main()
