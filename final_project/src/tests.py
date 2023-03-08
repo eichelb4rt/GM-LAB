@@ -60,7 +60,7 @@ def single_log_likelihood(adjacency_matrix: npt.NDArray[np.bool_], x_train: npt.
     return log_likelihood
 
 
-def cross_validate(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float32], rotations=8) -> npt.NDArray[np.float32]:
+def cross_validate(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float32], rotations=8) -> float:
     """Calculates the log likelihood with a sort-of cross validation (splits up data into multiple training and test sets and sums up the log likelihood of the test sets). This is done to catch overfitting."""
 
     clock.start("total")
@@ -77,6 +77,12 @@ def cross_validate(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.fl
     clock.total("total")
     # sum up the log likelihoods (mean is not the right tool here!)
     return np.sum(log_likelihoods, axis=0)
+
+def train_log_likelihood(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float32]) -> float:
+    """Fits a model to the whole dataset and calculates the likelihood of the trained data."""
+    
+    gbn = GaussianBayesNet(adjacency_matrix).fit(x)
+    return gbn.log_likelihood(x)
 
 
 if __name__ == "__main__":
