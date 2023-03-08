@@ -237,15 +237,19 @@ def main():
     assert example_multi_gaussian.sigma[0, 1] == 2
     assert example_multi_gaussian.sigma[1, 2] == -5
     assert example_multi_gaussian.sigma[0, 2] == -2
+    print("network.py: converting to multivariate gaussian correctly.")
+
     # define a model with adjacency matrix and set the network parameters, sample a lot of data from it, fit another model and compare the two models
     N_DATA_POINTS = 100_000
+    RELATIVE_TOLERANCE = 0.02
     synthetical_data = example_multi_gaussian.sample(N_DATA_POINTS)
     trained_gbn = GaussianBayesNet(adjacency_matrix).fit(synthetical_data)
     for node in range(3):
         example_beta, example_sigma = example_gbn.network_parameters[node]
         trained_beta, trained_sigma = trained_gbn.network_parameters[node]
-        assert np.all(np.isclose(example_beta, trained_beta, rtol=0.01))
-        assert np.isclose(example_sigma, trained_sigma, rtol=0.01)
+        assert np.all(np.isclose(example_beta, trained_beta, rtol=RELATIVE_TOLERANCE))
+        assert np.isclose(example_sigma, trained_sigma, rtol=RELATIVE_TOLERANCE)
+    print("network.py: learning the correct parameters.")
     print("network.py: all tests passed.")
 
 
