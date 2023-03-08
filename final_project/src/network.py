@@ -43,8 +43,10 @@ class MultivariateGaussian:
         L = np.linalg.cholesky(self.sigma)
         # generate a dim x n_samples matrix of samples (n_samples samples that follow a d-dimensional standard gaussian)
         standard_normal_samples = np.random.normal(size=self.dimension * n_samples).reshape(self.dimension, n_samples).astype(np.float32)
+        # copy the mean vector along the samples
+        offset_matrix = np.repeat(self.mu[:, np.newaxis], n_samples, axis=1)
         # stretch and offset every sample, then transpose the matrix so we have a (n_samples x dim) matrix
-        return (L @ standard_normal_samples + self.mu).T
+        return (L @ standard_normal_samples + offset_matrix).T
 
 
 class GaussianBayesNet:
@@ -204,7 +206,7 @@ class GaussianBayesNet:
 
 
 def main():
-    # TODO: define a model with adjacency matrix and set the network parameters, sample a lot of data from it, fit another model and compare the two models
+    # test if the conversion to a multivariate gaussian is correct
     # this example is taken from https://helenedk.medium.com/an-introduction-to-gaussian-bayesian-networks-4eeed3d8e6e0
     # p(x_0) ~ N(2, 4)
     # p(x_1 | x_0) ~ N(0.5 * x_0 - 2.5, 4)
@@ -226,15 +228,25 @@ def main():
         2: (beta_x_2, sigma_x_2),
     }
     example_gbn = GaussianBayesNet(adjacency_matrix, network_parameters)
-    multi_gaussian = example_gbn.to_multivariate_gaussian()
+    example_multi_gaussian = example_gbn.to_multivariate_gaussian()
     expected_mu = np.array([2, -1.5, 2.5])
-    assert np.all(multi_gaussian.mu == expected_mu)
-    assert multi_gaussian.sigma[0, 0] == 4
-    assert multi_gaussian.sigma[1, 1] == 5
-    assert multi_gaussian.sigma[2, 2] == 8
-    assert multi_gaussian.sigma[0, 1] == 2
-    assert multi_gaussian.sigma[1, 2] == -5
-    assert multi_gaussian.sigma[0, 2] == -2
+    assert np.all(example_multi_gaussian.mu == expected_mu)
+    assert example_multi_gaussian.sigma[0, 0] == 4
+    assert example_multi_gaussian.sigma[1, 1] == 5
+    assert example_multi_gaussian.sigma[2, 2] == 8
+    assert example_multi_gaussian.sigma[0, 1] == 2
+    assert example_multi_gaussian.sigma[1, 2] == -5
+    assert example_multi_gaussian.sigma[0, 2] == -2
+    # define a model with adjacency matrix and set the network parameters, sample a lot of data from it, fit another model and compare the two models
+    N_DATA_POINTS = 100_000
+    synthetical_data = example_multi_gaussian.sample(N_DATA_POINTS)
+    trained_gbn = GaussianBayesNet(adjacency_matrix).fit(synthetical_data)
+    for node in range(3):
+        example_beta, example_sigma = example_gbn.network_parameters[node]
+        trained_beta, trained_sigma = trained_gbn.network_parameters[node]
+        assert np.all(np.isclose(example_beta, trained_beta, rtol=0.01))
+        assert np.isclose(example_sigma, trained_sigma, rtol=0.01)
+    print("network.py: all tests passed.")
 
 
 if __name__ == "__main__":
