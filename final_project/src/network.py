@@ -242,8 +242,8 @@ def main():
     # define a model with adjacency matrix and set the network parameters, sample a lot of data from it, fit another model and compare the two models
     N_DATA_POINTS = 100_000
     RELATIVE_TOLERANCE = 0.02
-    synthetical_data = example_multi_gaussian.sample(N_DATA_POINTS)
-    trained_gbn = GaussianBayesNet(adjacency_matrix).fit(synthetical_data)
+    synthetic_data = example_multi_gaussian.sample(N_DATA_POINTS)
+    trained_gbn = GaussianBayesNet(adjacency_matrix).fit(synthetic_data)
     for node in range(3):
         example_beta, example_sigma = example_gbn.network_parameters[node]
         trained_beta, trained_sigma = trained_gbn.network_parameters[node]
@@ -251,6 +251,31 @@ def main():
         assert np.isclose(example_sigma, trained_sigma, rtol=RELATIVE_TOLERANCE)
     print("network.py: learning the correct parameters.")
     print("network.py: all tests passed.")
+
+    # fun experiment: directions of dependencies don't matter! (watch out: directions don't matter as long as all the conditional independencies are the same. this is not always the case!)
+    other_adjacency_matrix: npt.NDArray[np.bool_] = np.array([
+        [False, False, False],
+        [True, False, True],
+        [False, False, False],
+    ])
+    other_trained_gbn = GaussianBayesNet(other_adjacency_matrix).fit(synthetic_data)
+
+    trained_multi_gaussian = trained_gbn.to_multivariate_gaussian()
+    other_trained_multi_gaussian = other_trained_gbn.to_multivariate_gaussian()
+    print("\nexample gbn:")
+    print(f"likelihood: {example_gbn.log_likelihood(synthetic_data)}")
+    print(f"mu:\n{example_multi_gaussian.mu}")
+    print(f"sigma:\n{example_multi_gaussian.sigma}")
+
+    print("\nfirst trained gbn (correct adjacency matrix):")
+    print(f"likelihood: {trained_gbn.log_likelihood(synthetic_data)}")
+    print(f"mu:\n{trained_multi_gaussian.mu}")
+    print(f"sigma:\n{trained_multi_gaussian.sigma}")
+
+    print("\nsecond trained gbn (adjacency matrix with different directions):")
+    print(f"likelihood: {other_trained_gbn.log_likelihood(synthetic_data)}")
+    print(f"mu:\n{other_trained_multi_gaussian.mu}")
+    print(f"sigma:\n{other_trained_multi_gaussian.sigma}")
 
 
 if __name__ == "__main__":
