@@ -2,6 +2,8 @@ import numpy as np
 import numpy.typing as npt
 from typing import Self
 
+from cycles import has_cycle
+
 
 class GaussianBayesNet:
     def __init__(self, adjacency_matrix: npt.NDArray[np.bool_], parameters: dict[int, tuple[npt.NDArray[np.float32], float]] = None):
@@ -21,7 +23,7 @@ class GaussianBayesNet:
         for i in range(self.n):
             # i know (...) == False can be written as not (...), but i think this is more readable because i'm reading the contents of the adjacency matrix
             assert adjacency_matrix[i, i] == False, f"A node cannot be the parent of itself (node: {i})."
-        # TODO: guarantee DAG (no circles)
+        assert not has_cycle(adjacency_matrix), "Adjacency matrix has to represent a DAG (a cycle was found)."
 
     def fit(self, dataset: npt.NDArray[np.float32], lambda_reg: float = 0) -> Self:
         """Fits the parameters to the data, given the adjacency matrix.
