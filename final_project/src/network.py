@@ -2,7 +2,7 @@ import numpy as np
 import numpy.typing as npt
 from typing import Self
 
-from cycles import has_cycle
+import graphs
 
 
 class GaussianBayesNet:
@@ -19,11 +19,11 @@ class GaussianBayesNet:
 
         self.adjacency_matrix = adjacency_matrix
         self.network_parameters = parameters
-        self.n = adjacency_matrix.shape[0]
+        self.n = graphs.n_nodes(adjacency_matrix)
         for i in range(self.n):
             # i know (...) == False can be written as not (...), but i think this is more readable because i'm reading the contents of the adjacency matrix
             assert adjacency_matrix[i, i] == False, f"A node cannot be the parent of itself (node: {i})."
-        assert not has_cycle(adjacency_matrix), "Adjacency matrix has to represent a DAG (a cycle was found)."
+        assert not graphs.has_cycle(adjacency_matrix), "Adjacency matrix has to represent a DAG (a cycle was found)."
 
     def fit(self, dataset: npt.NDArray[np.float32], lambda_reg: float = 0) -> Self:
         """Fits the parameters to the data, given the adjacency matrix.
@@ -49,7 +49,7 @@ class GaussianBayesNet:
         return self
 
     def parents(self, node: int) -> list[int]:
-        return list(np.argwhere(self.adjacency_matrix[:, node] == True)[:, 0])
+        return graphs.neighbours_in(node, self.adjacency_matrix)
 
     def log_likelihood(self, dataset: npt.NDArray[np.float32]) -> float:
         """Log likelihood of observing the given data.

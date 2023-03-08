@@ -2,6 +2,22 @@ import numpy as np
 import numpy.typing as npt
 
 
+def n_nodes(adjacency_matrix: npt.NDArray[np.bool_]) -> bool:
+    return adjacency_matrix.shape[0]
+
+
+def n_edges(adjacency_matrix: npt.NDArray[np.bool_]) -> bool:
+    return np.count_nonzero(adjacency_matrix)
+
+
+def neighbours_in(node: int, adjacency_matrix: npt.NDArray[np.bool_]) -> list[int]:
+    return list(np.where(adjacency_matrix[:, node])[0])
+
+
+def neighbours_out(node: int, adjacency_matrix: npt.NDArray[np.bool_]) -> list[int]:
+    return list(np.where(adjacency_matrix[node])[0])
+
+
 def has_cycle(adjacency_matrix: npt.NDArray[np.bool_]) -> bool:
     """Determines if the graph has a cycle."""
 
@@ -16,7 +32,6 @@ def has_cycle(adjacency_matrix: npt.NDArray[np.bool_]) -> bool:
     has_been_assigned = np.full(n, False)
     for node in work_list:
         assign(node, node, adjacency_matrix, components, has_been_assigned)
-    print(components)
     # test if the fully connected components are the nodes themselves
     return len(components) != n
 
@@ -25,8 +40,7 @@ def visit(node: int, adjacency_matrix: npt.NDArray[np.bool_], visited: npt.NDArr
     if visited[node]:
         return
     visited[node] = True
-    out_neighbours = np.where(adjacency_matrix[node])[0]
-    for out_neighbour in out_neighbours:
+    for out_neighbour in neighbours_out(node, adjacency_matrix):
         if not visited[out_neighbour]:
             visit(out_neighbour, adjacency_matrix, visited, work_list)
     work_list.insert(0, node)
@@ -39,19 +53,28 @@ def assign(node: int, root: int, adjacency_matrix: npt.NDArray[np.bool_], compon
         components[root] = []
     components[root].append(node)
     has_been_assigned[node] = True
-    in_neighbours = np.where(adjacency_matrix[:, node])[0]
-    for in_neighbour in in_neighbours:
+    for in_neighbour in neighbours_in(node, adjacency_matrix):
         assign(in_neighbour, root, adjacency_matrix, components, has_been_assigned)
 
 
 def main():
     n = 5
+    # this should have a cycle
     adjacency_matrix = np.full((n, n), False)
     for i in range(n):
         for j in range(i + 1, n):
             adjacency_matrix[i, j:] = True
     adjacency_matrix[1, 0] = True
-    print(has_cycle(adjacency_matrix))
+    assert has_cycle(adjacency_matrix), "Test failed: graphs -> adjacency matrix should have a cycle but none was detected."
+
+    # this should not have a cycle
+    adjacency_matrix = np.full((n, n), False)
+    for i in range(n):
+        for j in range(i + 1, n):
+            adjacency_matrix[i, j:] = True
+    assert not has_cycle(adjacency_matrix), "Test failed: graphs -> adjacency matrix should not have a cycle but one was detected."
+
+    print("graphs.py: all tests passed.")
 
 
 if __name__ == "__main__":

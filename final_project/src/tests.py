@@ -2,8 +2,12 @@ import numpy as np
 import numpy.typing as npt
 
 import clock
+import graphs
 from dynamic_line import Progress
 from network import GaussianBayesNet
+
+
+N_ROTATIONS = 8
 
 
 def gen_test_mask(n_samples: int, rotations: int, iteration: int) -> npt.NDArray[np.bool_]:
@@ -29,23 +33,6 @@ def split_train_test(x: npt.NDArray[np.float32], rotations: int, iteration: int)
     x_test = x[test_mask, :]
     x_train = x[~test_mask, :]
     return x_train, x_test
-
-
-def main():
-    # test gen_test_mask
-    for n_samples in range(50, 100):
-        for rotations in range(2, 9):
-            test_masks = [gen_test_mask(n_samples, rotations, iteration) for iteration in range(rotations)]
-            # assert test mask sizes differ by at most 1
-            test_mask_sizes = [np.count_nonzero(test_masks[iteration]) for iteration in range(rotations)]
-            assert max(test_mask_sizes) - min(test_mask_sizes) <= 1, f"Test failed: gen_test_mask had a max mask of {max(test_mask_sizes)} and a min mask of {min(test_mask_sizes)}, which is a difference of {max(test_mask_sizes) - min(test_mask_sizes)} (which is >1). n_samples: {n_samples}, rotations: {rotations}."
-            # assert test masks are disjoined
-            intersection = np.logical_and.reduce(test_masks)
-            assert np.count_nonzero(intersection) == 0, f"Test failed: gen_test_mask did not have disjoined test masks. n_samples: {n_samples}, rotations: {rotations}."
-            # assert test masks cover all samples
-            disjunction = np.logical_or.reduce(test_masks)
-            assert np.count_nonzero(disjunction) == n_samples, f"Test failed: gen_test_mask test masks did not cover all samples. n_samples: {n_samples}, rotations: {rotations}."
-    print("tests.py: all tests passed.")
 
 
 def single_log_likelihood(adjacency_matrix: npt.NDArray[np.bool_], x_train: npt.NDArray[np.float32], x_test: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
@@ -75,14 +62,44 @@ def cross_validate(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.fl
     clock.avg("fitting data")
     clock.avg("calculating log likelihood")
     clock.total("total")
+    clock.clear_all()
     # sum up the log likelihoods (mean is not the right tool here!)
     return np.sum(log_likelihoods, axis=0)
 
+
 def train_log_likelihood(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float32]) -> float:
     """Fits a model to the whole dataset and calculates the likelihood of the trained data."""
-    
+
     gbn = GaussianBayesNet(adjacency_matrix).fit(x)
     return gbn.log_likelihood(x)
+
+
+def test_adjacency_matrix(adjacency_matrix: npt.NDArray[np.bool_], dataset: npt.NDArray[np.float32]):
+    """Tests the structure given by the adjacency matrix on the given dataset and prints some info."""
+
+    n_params = graphs.n_edges(adjacency_matrix)
+    print(f"number of parameters: {n_params}")
+    cross_log_likelihood = cross_validate(adjacency_matrix, dataset, N_ROTATIONS)
+    print(f"total log likelihood of test sets is {cross_log_likelihood}")
+    train_set_log_likelihood = train_log_likelihood(adjacency_matrix, dataset)
+    print(f"total log likelihood of train set is {train_set_log_likelihood}")
+
+
+def main():
+    # test gen_test_mask
+    for n_samples in range(50, 100):
+        for rotations in range(2, 9):
+            test_masks = [gen_test_mask(n_samples, rotations, iteration) for iteration in range(rotations)]
+            # assert test mask sizes differ by at most 1
+            test_mask_sizes = [np.count_nonzero(test_masks[iteration]) for iteration in range(rotations)]
+            assert max(test_mask_sizes) - min(test_mask_sizes) <= 1, f"Test failed: gen_test_mask had a max mask of {max(test_mask_sizes)} and a min mask of {min(test_mask_sizes)}, which is a difference of {max(test_mask_sizes) - min(test_mask_sizes)} (which is >1). n_samples: {n_samples}, rotations: {rotations}."
+            # assert test masks are disjoined
+            intersection = np.logical_and.reduce(test_masks)
+            assert np.count_nonzero(intersection) == 0, f"Test failed: gen_test_mask did not have disjoined test masks. n_samples: {n_samples}, rotations: {rotations}."
+            # assert test masks cover all samples
+            disjunction = np.logical_or.reduce(test_masks)
+            assert np.count_nonzero(disjunction) == n_samples, f"Test failed: gen_test_mask test masks did not cover all samples. n_samples: {n_samples}, rotations: {rotations}."
+    print("tests.py: all tests passed.")
 
 
 if __name__ == "__main__":

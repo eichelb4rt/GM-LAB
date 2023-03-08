@@ -38,3 +38,9 @@ def total(clock_name: str):
         raise LookupError(f"The clock \"{clock_name}\" hasn't been measured!")
     mean_time = np.sum(measured[clock_name])
     print(f"{clock_name}: total time {round(mean_time, 2)}s")
+
+
+def clear_all():
+    global start_times, measured
+    start_times = {}
+    measured = {}
