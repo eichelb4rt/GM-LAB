@@ -16,6 +16,10 @@ def main():
 
     adjacency_matrix = np.full((n, n), False)
     graphs.save(adjacency_matrix, name="empty")
+    
+    test_arr = np.array([])
+    test_arr = np.insert(test_arr, 0, 1)
+    print(test_arr)
 
 
 if __name__ == "__main__":
