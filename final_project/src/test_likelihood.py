@@ -1,13 +1,16 @@
+import argparse
 import numpy as np
+import pandas as pd
 import numpy.typing as npt
 
 import clock
 import graphs
 from dynamic_line import Progress
 from network import GaussianBayesNet
+from test_arg import TestAction
 
 
-N_ROTATIONS = 8
+DEFAULT_ROTATIONS = 8
 
 
 def gen_test_mask(n_samples: int, rotations: int, iteration: int) -> npt.NDArray[np.bool_]:
@@ -74,18 +77,7 @@ def train_log_likelihood(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray
     return gbn.log_likelihood(x)
 
 
-def test_adjacency_matrix(adjacency_matrix: npt.NDArray[np.bool_], dataset: npt.NDArray[np.float32]):
-    """Tests the structure given by the adjacency matrix on the given dataset and prints some info."""
-
-    n_params = graphs.n_edges(adjacency_matrix)
-    print(f"number of parameters: {n_params}")
-    cross_log_likelihood = cross_validate(adjacency_matrix, dataset, N_ROTATIONS)
-    print(f"total log likelihood of test sets is {cross_log_likelihood}")
-    train_set_log_likelihood = train_log_likelihood(adjacency_matrix, dataset)
-    print(f"total log likelihood of train set is {train_set_log_likelihood}")
-
-
-def main():
+def test_tests():
     # test gen_test_mask
     for n_samples in range(50, 100):
         for rotations in range(2, 9):
@@ -99,7 +91,33 @@ def main():
             # assert test masks cover all samples
             disjunction = np.logical_or.reduce(test_masks)
             assert np.count_nonzero(disjunction) == n_samples, f"Test failed: gen_test_mask test masks did not cover all samples. n_samples: {n_samples}, rotations: {rotations}."
-    print("tests.py: all tests passed.")
+    print("test_likelihood.py: all tests passed.")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Reads an adjacency matrix from a .npy file and tests the likelihood of corresponding GBNs.")
+    parser.add_argument("filename",
+                        help="File with the encoded adjacency matrix.")
+    parser.add_argument("-r",
+                        "--rotations",
+                        type=int,
+                        default=DEFAULT_ROTATIONS,
+                        help=f"Number of rotations for the cross validation (by default {DEFAULT_ROTATIONS}).")
+    parser.add_argument("--test",
+                        action=TestAction.build(test_tests),
+                        help="Tests the implementation (no other arguments needed).")
+
+    args = parser.parse_args()
+    adjacency_matrix: npt.NDArray[np.bool_] = np.load(args.filename)
+    dataset = pd.read_csv("trainset.csv").to_numpy()
+
+    print(f"report: {args.filename}")
+    n_params = graphs.n_edges(adjacency_matrix)
+    print(f"number of parameters: {n_params}")
+    cross_log_likelihood = cross_validate(adjacency_matrix, dataset, args.rotations)
+    print(f"total log likelihood of test sets is {cross_log_likelihood}")
+    train_set_log_likelihood = train_log_likelihood(adjacency_matrix, dataset)
+    print(f"total log likelihood of train set is {train_set_log_likelihood}")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,8 @@
 import sys
 
+
+MAX_LINE_LENGTH = 200
+
 is_active = False
 
 
@@ -19,8 +22,12 @@ def write(text: str):
 def end(stay=False):
     global is_active
     is_active = False
-    end_str = "\n" if stay else "\r"
-    sys.stdout.write(end_str)
+    if stay:
+        sys.stdout.write("\n")
+    else:
+        sys.stdout.write("\r" + " " * MAX_LINE_LENGTH)
+        sys.stdout.flush()
+        sys.stdout.write("\r")
 
 
 class Progress:
