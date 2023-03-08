@@ -18,6 +18,18 @@ def neighbours_out(node: int, adjacency_matrix: npt.NDArray[np.bool_]) -> list[i
     return list(np.where(adjacency_matrix[node])[0])
 
 
+def all_edges(adjacency_matrix: npt.NDArray[np.bool_]) -> list[tuple[int, int]]:
+    n = n_nodes(adjacency_matrix)
+    return [(node_from, node_to) for node_from in range(n) for node_to in range(n) if adjacency_matrix[node_from, node_to]]
+
+
+def save(adjacency_matrix: npt.NDArray[np.bool_], name: str = "graph"):
+    """Saves the adjacency matrix as a .npy file to graphs/{name}.npy"""
+
+    out_file = f"graphs/{name}.npy"
+    np.save(out_file, adjacency_matrix)
+
+
 def has_cycle(adjacency_matrix: npt.NDArray[np.bool_]) -> bool:
     """Determines if the graph has a cycle."""
 

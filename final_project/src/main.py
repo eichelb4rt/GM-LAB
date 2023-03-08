@@ -14,10 +14,12 @@ def main():
     for i in range(n):
         for j in range(i + 1, n):
             adjacency_matrix[i, j:] = True
+    graphs.save(adjacency_matrix, name="full")
     tests.test_adjacency_matrix(adjacency_matrix, dataset)
 
     print("\nEmpty adjacency matrix:")
     adjacency_matrix = np.full((n, n), False)
+    graphs.save(adjacency_matrix, name="empty")
     tests.test_adjacency_matrix(adjacency_matrix, dataset)
 
 
