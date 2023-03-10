@@ -38,27 +38,20 @@ def split_train_test(x: npt.NDArray[np.float32], rotations: int, iteration: int)
     return x_train, x_test
 
 
-def single_log_likelihood(adjacency_matrix: npt.NDArray[np.bool_], x_train: npt.NDArray[np.float32], x_test: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
-    """Generates likelihood (for specific x_train, x_test)."""
-
-    clock.start("fitting data")
-    gbn = GaussianBayesNet(adjacency_matrix).fit(x_train)
-    clock.stop("fitting data")
-    clock.start("calculating log likelihood")
-    log_likelihood = gbn.log_likelihood(x_test)
-    clock.stop("calculating log likelihood")
-    return log_likelihood
-
-
 def cross_validate(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float32], rotations=8) -> float:
     """Calculates the log likelihood with a sort-of cross validation (splits up data into multiple training and test sets and sums up the log likelihood of the test sets). This is done to catch overfitting."""
 
-    clock.start("total")
     log_likelihoods = np.empty(rotations)
     progress = Progress(rotations)
+    clock.start("total")
     for i in range(rotations):
         x_train, x_test = split_train_test(x, rotations, i)
-        log_likelihoods[i] = single_log_likelihood(adjacency_matrix, x_train, x_test)
+        clock.start("fitting data")
+        gbn = GaussianBayesNet(adjacency_matrix).fit(x_train)
+        clock.stop("fitting data")
+        clock.start("calculating log likelihood")
+        log_likelihoods[i] = gbn.log_likelihood(x_test)
+        clock.stop("calculating log likelihood")
         progress.update(i + 1)
     clock.stop("total")
     # print runtime

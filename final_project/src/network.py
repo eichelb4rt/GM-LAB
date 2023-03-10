@@ -31,6 +31,12 @@ def linear_regression(x: npt.NDArray[np.float32], y: npt.NDArray[np.float32], la
     return weights, sigma
 
 
+def log_likelihood_linear_regression(x: npt.NDArray[np.float32], y: npt.NDArray[np.float32], beta: npt.NDArray[np.float32], sigma: float) -> float:
+    x_padded: npt.NDArray[np.float32] = np.c_[np.ones(x.shape[0]), x]
+    mu = x_padded @ beta
+    return np.sum(-0.5 * ((y - mu) / sigma)**2 - np.log(sigma) - 0.5 * np.log(2 * np.pi))
+
+
 class MultivariateGaussian:
     def __init__(self, mu: npt.NDArray[np.float32], sigma: npt.NDArray[np.float32]) -> None:
         self.mu = mu
@@ -120,9 +126,7 @@ class GaussianBayesNet:
             # get the network parameters
             beta, sigma = self.network_parameters[i]
             # calculate the log likelihood for this node
-            x_padded: npt.NDArray[np.float32] = np.c_[np.ones(m), x]
-            mu = x_padded @ beta
-            log_likelihood += np.sum(-0.5 * ((y - mu) / sigma)**2 - np.log(sigma) - 0.5 * np.log(2 * np.pi))
+            log_likelihood += log_likelihood_linear_regression(x, y, beta, sigma)
         return log_likelihood
 
     def to_multivariate_gaussian(self) -> MultivariateGaussian:
