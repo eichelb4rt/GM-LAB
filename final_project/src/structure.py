@@ -8,13 +8,16 @@ import graphs
 from network import linear_regression
 
 
+Edge = tuple[int, int]
+
+
 class ChangeType(Enum):
     Flip = 0
     Addition = 1
     Deletion = 2
 
 
-def apply_change(adjacency_matrix: npt.NDArray[np.bool_], changed_edge: tuple[int, int], change_type: ChangeType):
+def apply_change(adjacency_matrix: npt.NDArray[np.bool_], changed_edge: Edge, change_type: ChangeType):
     """Applies the change to the adjacency matrix. Edge order is relevant."""
 
     from_node, to_node = changed_edge
@@ -31,7 +34,7 @@ def apply_change(adjacency_matrix: npt.NDArray[np.bool_], changed_edge: tuple[in
     raise ValueError(f"Unsupported change type: {change_type}")
 
 
-def revert_change(adjacency_matrix: npt.NDArray[np.bool_], changed_edge: tuple[int, int], change_type: ChangeType):
+def revert_change(adjacency_matrix: npt.NDArray[np.bool_], changed_edge: Edge, change_type: ChangeType):
     """Reverts the change to the adjacency matrix, assuming it was applied earlier. Edge order is relevant."""
 
     from_node, to_node = changed_edge
@@ -60,10 +63,10 @@ def edge_difference(change_type: ChangeType) -> int:
     raise ValueError(f"Unsupported change type: {change_type}")
 
 
-def possible_flips(adjacency_matrix: npt.NDArray[np.bool_]) -> list[tuple[int, int]]:
+def possible_flips(adjacency_matrix: npt.NDArray[np.bool_]) -> list[Edge]:
     """List of edges that could be flipped without creating a cycle."""
 
-    flips: list[tuple[int, int]] = []
+    flips: list[Edge] = []
     # flip some edges
     for edge in graphs.all_edges(adjacency_matrix):
         # change the adjacency matrix temporarily
@@ -75,17 +78,17 @@ def possible_flips(adjacency_matrix: npt.NDArray[np.bool_]) -> list[tuple[int, i
     return flips
 
 
-def possible_deletions(adjacency_matrix: npt.NDArray[np.bool_]) -> list[tuple[int, int]]:
+def possible_deletions(adjacency_matrix: npt.NDArray[np.bool_]) -> list[Edge]:
     """List of edges that could be deleted without creating a cycle."""
 
     return graphs.all_edges(adjacency_matrix)
 
 
-def possible_additions(adjacency_matrix: npt.NDArray[np.bool_]) -> list[tuple[int, int]]:
+def possible_additions(adjacency_matrix: npt.NDArray[np.bool_]) -> list[Edge]:
     """List of edges that could be added without creating a cycle."""
 
     n_nodes = graphs.n_nodes(adjacency_matrix)
-    additions: list[tuple[int, int]] = []
+    additions: list[Edge] = []
     for from_node in range(n_nodes):
         for to_node in range(n_nodes):
             # nodes can't have an edge to themselves
@@ -104,7 +107,7 @@ def possible_additions(adjacency_matrix: npt.NDArray[np.bool_]) -> list[tuple[in
     return additions
 
 
-def possible_changes(adjacency_matrix: npt.NDArray[np.bool_], change_type: ChangeType) -> list[tuple[int, int]]:
+def possible_changes(adjacency_matrix: npt.NDArray[np.bool_], change_type: ChangeType) -> list[Edge]:
     if change_type == ChangeType.Flip:
         return possible_flips(adjacency_matrix)
     if change_type == ChangeType.Addition:
@@ -128,7 +131,7 @@ def node_score(node: int, parents: list[int], dataset: npt.NDArray[np.float32]) 
     return -0.5 * np.sum(((y - mu) / sigma)**2) - n * np.log(sigma)
 
 
-def changed_scores(changed_edge: tuple[int, int], change_type: ChangeType, adjacency_matrix: npt.NDArray[np.bool_], node_scores: npt.NDArray[np.float32], dataset: npt.NDArray[np.float32]) -> tuple[float, float]:
+def changed_scores(changed_edge: Edge, change_type: ChangeType, adjacency_matrix: npt.NDArray[np.bool_], node_scores: npt.NDArray[np.float32], dataset: npt.NDArray[np.float32]) -> tuple[float, float]:
     """Returns the new scores of the affected nodes if the change was applied."""
 
     from_node, to_node = changed_edge
@@ -153,8 +156,8 @@ def changed_scores(changed_edge: tuple[int, int], change_type: ChangeType, adjac
     return new_from_score, new_to_score
 
 
-def find_top_change(adjacency_matrix: npt.NDArray[np.bool_], node_scores: npt.NDArray[np.float32], dataset: npt.NDArray[np.float32], regularization_constant: float = 0) -> tuple[float, tuple[int, int], ChangeType, tuple[float, float]]:
-    """Finds the change that yields the best improvement. Returns:
+def find_top_change(changes: list[tuple[ChangeType, Edge]], adjacency_matrix: npt.NDArray[np.bool_], node_scores: npt.NDArray[np.float32], dataset: npt.NDArray[np.float32], regularization_constant: float = 0) -> tuple[float, Edge, ChangeType, tuple[float, float]]:
+    """Finds the change among the passed changes that yields the best improvement. Returns:
         - the improvement
         - the changed edge as a tuple
         - the change type
@@ -164,23 +167,26 @@ def find_top_change(adjacency_matrix: npt.NDArray[np.bool_], node_scores: npt.ND
     top_improvement = -np.infty
     top_edge_difference = 0
     # keep track of what change was the best
-    top_change: tuple[int, int]
+    top_change: Edge
     top_change_type: ChangeType
     new_node_scores: tuple[float, float]
-    for change_type in ChangeType:
-        for changed_edge in possible_changes(adjacency_matrix, change_type):
-            new_from_score, new_to_score = changed_scores(changed_edge, change_type, adjacency_matrix, node_scores, dataset)
-            from_node, to_node = changed_edge
-            improvement = (new_from_score + new_to_score) - (node_scores[from_node] + node_scores[to_node])
-            current_edge_difference = edge_difference(change_type)
-            # if we get a better improvement, update
-            if improvement - top_improvement > regularization_constant * (current_edge_difference - top_edge_difference):
-                top_improvement = improvement
-                top_change = changed_edge
-                top_change_type = change_type
-                new_node_scores = (new_from_score, new_to_score)
-                top_edge_difference = current_edge_difference
+    for change_type, changed_edge in changes:
+        new_from_score, new_to_score = changed_scores(changed_edge, change_type, adjacency_matrix, node_scores, dataset)
+        from_node, to_node = changed_edge
+        improvement = (new_from_score + new_to_score) - (node_scores[from_node] + node_scores[to_node])
+        current_edge_difference = edge_difference(change_type)
+        # if we get a better improvement, update
+        if improvement - top_improvement > regularization_constant * (current_edge_difference - top_edge_difference):
+            top_improvement = improvement
+            top_change = changed_edge
+            top_change_type = change_type
+            new_node_scores = (new_from_score, new_to_score)
+            top_edge_difference = current_edge_difference
     return top_improvement, top_change, top_change_type, new_node_scores
+
+
+def construct_all_changes(adjacency_matrix: npt.NDArray[np.bool_]) -> list[tuple[ChangeType, Edge]]:
+    return [(change_type, changed_edge) for change_type in ChangeType for changed_edge in possible_changes(adjacency_matrix, change_type)]
 
 
 def hill_climb(initial_adjacency_matrix: npt.NDArray[np.bool_], dataset: npt.NDArray[np.float32], regularization_constant: float = 0, node_scores: npt.NDArray[np.float32] = None) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.float32]]:
@@ -198,15 +204,19 @@ def hill_climb(initial_adjacency_matrix: npt.NDArray[np.bool_], dataset: npt.NDA
     # pretend we improved already to get into the loop
     top_improvement = 1
     while top_improvement > 0:
-        top_improvement, top_change, top_change_type, new_node_scores = find_top_change(top_adjacency_matrix, node_scores, dataset, regularization_constant)
+        # construct all possible changes
+        all_possible_changes = construct_all_changes(top_adjacency_matrix)
+        # find the top change among them
+        top_improvement, top_change, top_change_type, new_node_scores = find_top_change(all_possible_changes, top_adjacency_matrix, node_scores, dataset, regularization_constant)
         # we looked through all possible changes and determined the best, now apply it
-        apply_change(top_adjacency_matrix, top_change, top_change_type)
-        print(top_improvement)
-        # change node scores
-        from_node, to_node = top_change
-        new_from_score, new_to_score = new_node_scores
-        node_scores[from_node] = new_from_score
-        node_scores[to_node] = new_to_score
+        if top_improvement > 0:
+            apply_change(top_adjacency_matrix, top_change, top_change_type)
+            print(top_improvement)
+            # change node scores
+            from_node, to_node = top_change
+            new_from_score, new_to_score = new_node_scores
+            node_scores[from_node] = new_from_score
+            node_scores[to_node] = new_to_score
     return top_adjacency_matrix, node_scores
 
 
