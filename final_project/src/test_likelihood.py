@@ -30,7 +30,7 @@ def gen_test_mask(n_samples: int, rotations: int, iteration: int) -> npt.NDArray
     return mask
 
 
-def split_train_test(x: npt.NDArray[np.float32], rotations: int, iteration: int) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
+def split_train_test(x: npt.NDArray[np.float64], rotations: int, iteration: int) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     n_samples = x.shape[0]
     test_mask = gen_test_mask(n_samples, rotations, iteration)
     x_test = x[test_mask, :]
@@ -38,7 +38,7 @@ def split_train_test(x: npt.NDArray[np.float32], rotations: int, iteration: int)
     return x_train, x_test
 
 
-def cross_validate(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float32], rotations=8) -> float:
+def cross_validate(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float64], rotations=8) -> float:
     """Calculates the log likelihood with a sort-of cross validation (splits up data into multiple training and test sets and sums up the log likelihood of the test sets). This is done to catch overfitting."""
 
     log_likelihoods = np.empty(rotations)
@@ -63,14 +63,14 @@ def cross_validate(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.fl
     return np.sum(log_likelihoods, axis=0)
 
 
-def train_log_likelihood(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float32]) -> float:
+def train_log_likelihood(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float64]) -> float:
     """Fits a model to the whole dataset and calculates the likelihood of the trained data."""
 
     gbn = GaussianBayesNet(adjacency_matrix).fit(x)
     return gbn.log_likelihood(x)
 
 
-def print_report(adjacency_matrix: npt.NDArray[np.bool_], dataset: npt.NDArray[np.float32], rotations: int = DEFAULT_ROTATIONS):
+def print_report(adjacency_matrix: npt.NDArray[np.bool_], dataset: npt.NDArray[np.float64], rotations: int = DEFAULT_ROTATIONS):
     n_params = graphs.n_edges(adjacency_matrix)
     print(f"number of parameters: {n_params}")
     cross_log_likelihood = cross_validate(adjacency_matrix, dataset, rotations)

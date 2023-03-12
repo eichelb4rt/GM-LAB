@@ -5,50 +5,50 @@ from typing import Self
 import graphs
 
 
-def linear_regression(x: npt.NDArray[np.float32], y: npt.NDArray[np.float32], lambda_reg: float = 0) -> tuple[npt.NDArray[np.float32], float]:
+def linear_regression(x: npt.NDArray[np.float64], y: npt.NDArray[np.float64], lambda_reg: float = 0) -> tuple[npt.NDArray[np.float64], float]:
     """Linear regression with regularization.
 
     Parameters
     ----------
-    x : npt.NDArray[np.float32]
+    x : npt.NDArray[np.float64]
         m x n matrix, where m is the number of samples and n is the number of features.
-    y : npt.NDArray[np.float32]
+    y : npt.NDArray[np.float64]
         m long vector, where m is the number of samples.
     lambda_reg : float, optional
         Regularization constant for the linear regression, by default 0.
 
     Returns
     -------
-    tuple[npt.NDArray[np.float32], float]
+    tuple[npt.NDArray[np.float64], float]
         Maximum likelihood parameters (offset, weights) and the resulting std deviation.
     """
 
     m = x.shape[0]
     n = x.shape[1]
-    x_padded: npt.NDArray[np.float32] = np.c_[np.ones(m), x]
+    x_padded: npt.NDArray[np.float64] = np.c_[np.ones(m), x]
     weights = np.linalg.solve(x_padded.T @ x_padded + lambda_reg * np.eye(n + 1), x_padded.T @ y)
     sigma = np.linalg.norm(x_padded @ weights - y) / np.sqrt(m)
     return weights, sigma
 
 
-def log_likelihood_linear_regression(x: npt.NDArray[np.float32], y: npt.NDArray[np.float32], beta: npt.NDArray[np.float32], sigma: float) -> float:
-    x_padded: npt.NDArray[np.float32] = np.c_[np.ones(x.shape[0]), x]
+def log_likelihood_linear_regression(x: npt.NDArray[np.float64], y: npt.NDArray[np.float64], beta: npt.NDArray[np.float64], sigma: float) -> float:
+    x_padded: npt.NDArray[np.float64] = np.c_[np.ones(x.shape[0]), x]
     mu = x_padded @ beta
     return - np.sum(0.5 * ((y - mu) / sigma)**2 + np.log(sigma) + 0.5 * np.log(2 * np.pi))
 
 
 class MultivariateGaussian:
-    def __init__(self, mu: npt.NDArray[np.float32], sigma: npt.NDArray[np.float32]) -> None:
+    def __init__(self, mu: npt.NDArray[np.float64], sigma: npt.NDArray[np.float64]) -> None:
         self.mu = mu
         self.sigma = sigma
         self.dimension = mu.shape[0]
 
-    def sample(self, n_samples: int) -> npt.NDArray[np.float32]:
+    def sample(self, n_samples: int) -> npt.NDArray[np.float64]:
         """Returns a n_samples x dimension matrix of samples that follow this multivariate gaussian distribution."""
 
         L = np.linalg.cholesky(self.sigma)
         # generate a dim x n_samples matrix of samples (n_samples samples that follow a d-dimensional standard gaussian)
-        standard_normal_samples = np.random.normal(size=self.dimension * n_samples).reshape(self.dimension, n_samples).astype(np.float32)
+        standard_normal_samples = np.random.normal(size=self.dimension * n_samples).reshape(self.dimension, n_samples).astype(np.float64)
         # copy the mean vector along the samples
         offset_matrix = np.repeat(self.mu[:, np.newaxis], n_samples, axis=1)
         # stretch and offset every sample, then transpose the matrix so we have a (n_samples x dim) matrix
@@ -56,14 +56,14 @@ class MultivariateGaussian:
 
 
 class GaussianBayesNet:
-    def __init__(self, adjacency_matrix: npt.NDArray[np.bool_], network_parameters: dict[int, tuple[npt.NDArray[np.float32], float]] = None):
+    def __init__(self, adjacency_matrix: npt.NDArray[np.bool_], network_parameters: dict[int, tuple[npt.NDArray[np.float64], float]] = None):
         """Bayesian network with Gaussians as conditional probabilities.
 
         Parameters
         ----------
         adjacency_matrix : npt.NDArray[np.bool_]
             Matrix defining parents of each node. A[i,j] == True <=> there is an edge from i to j (i is a parent of j).
-        parameters : dict[int, tuple[npt.NDArray[np.float32], float]]
+        parameters : dict[int, tuple[npt.NDArray[np.float64], float]]
             Gaussian parameters for the conditional probabilities of the nodes given their parents. Stored as {node: (beta, sigma)} where beta[0] is the offset and beta[1:] are the linear coefficients.
         """
 
@@ -75,12 +75,12 @@ class GaussianBayesNet:
             assert adjacency_matrix[i, i] == False, f"A node cannot be the parent of itself (node: {i})."
         assert not graphs.has_cycle(adjacency_matrix), "Adjacency matrix has to represent a DAG (a cycle was found)."
 
-    def fit(self, dataset: npt.NDArray[np.float32], lambda_reg: float = 0) -> Self:
+    def fit(self, dataset: npt.NDArray[np.float64], lambda_reg: float = 0) -> Self:
         """Fits the parameters to the data, given the adjacency matrix.
 
         Parameters
         ----------
-        dataset : npt.NDArray[np.float32]
+        dataset : npt.NDArray[np.float64]
             m x n matrix, where m is the number of samples and n is the number of features.
         lambda_reg : float
             Regularization constant for the linear regression that is done in order to estimate beta and beta_0.
@@ -101,12 +101,12 @@ class GaussianBayesNet:
     def parents(self, node: int) -> list[int]:
         return graphs.neighbours_in(node, self.adjacency_matrix)
 
-    def log_likelihood(self, dataset: npt.NDArray[np.float32]) -> float:
+    def log_likelihood(self, dataset: npt.NDArray[np.float64]) -> float:
         """Log likelihood of observing the given data.
 
         Parameters
         ----------
-        dataset : npt.NDArray[np.float32]
+        dataset : npt.NDArray[np.float64]
             m x n matrix, where m is the number of samples and n is the number of features.
 
         Returns
@@ -133,7 +133,7 @@ class GaussianBayesNet:
         """Generates the equivalent multivariate gaussian."""
 
         # calculate mean vector
-        mean_vector = np.empty(self.n, dtype=np.float32)
+        mean_vector = np.empty(self.n, dtype=np.float64)
         mean_done = np.full(self.n, False)
         # start with the root_nodes
         root_nodes = [node for node in range(self.n) if len(self.parents(node)) == 0]
@@ -159,7 +159,7 @@ class GaussianBayesNet:
                 mean_vector[node] = beta.T @ parent_means_padded
                 mean_done[node] = True
         # calculate covariance matrix
-        covariance_matrix = np.zeros((self.n, self.n), dtype=np.float32)
+        covariance_matrix = np.zeros((self.n, self.n), dtype=np.float64)
         covariance_done = np.full(self.n, False)
         discovered_order: list[int] = []
         # root nodes first
@@ -215,9 +215,9 @@ def main():
     # p(x_0) ~ N(2, 4)
     # p(x_1 | x_0) ~ N(0.5 * x_0 - 2.5, 4)
     # p(x_2 | x_1) ~ N(-x_1 + 1, 3)
-    beta_x_0 = np.array([2], dtype=np.float32)
-    beta_x_1 = np.array([-2.5, 0.5], dtype=np.float32)
-    beta_x_2 = np.array([1, -1], dtype=np.float32)
+    beta_x_0 = np.array([2], dtype=np.float64)
+    beta_x_1 = np.array([-2.5, 0.5], dtype=np.float64)
+    beta_x_2 = np.array([1, -1], dtype=np.float64)
     sigma_x_0 = np.sqrt(4)
     sigma_x_1 = np.sqrt(4)
     sigma_x_2 = np.sqrt(3)
@@ -226,7 +226,7 @@ def main():
         [False, False, True],
         [False, False, False],
     ])
-    network_parameters: dict[int, tuple[npt.NDArray[np.float32], float]] = {
+    network_parameters: dict[int, tuple[npt.NDArray[np.float64], float]] = {
         0: (beta_x_0, sigma_x_0),
         1: (beta_x_1, sigma_x_1),
         2: (beta_x_2, sigma_x_2),

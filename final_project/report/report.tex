@@ -116,13 +116,13 @@ A derivation of this can be found in \autoref{sec:calc:score_function}.
 Elementary changes (addition, substraction, flip of an edge) only influence local distributions.
 That means if we construct a graph $G'$, where $G'$ was made by applying an elementary change to an edge $(u, v)$ in $G$, the comparison $p(G' | D) > p(G | D)$ can be evaluated locally:
 \begin{align*}
-	\sum\limits_{i \in [n]} S_i(G') - \lambda \abs{E_{G'}}                               & > \sum\limits_{i \in [n]} S_i(G) - \lambda \abs{E_{G}} \\
-	\iff\sum\limits_{i \in [n]} S_i(G') - S_i(G)                                         & > \lambda (\abs{E_{G'}} - \abs{E_{G}})                 \\
-	\iff\underbrace{\sum\limits_{i \in \set{u,v}} S_i(G') - S_i(G)}_{:= \Delta_S(G', G)} & > \lambda \Delta_E(G',G)
+	\sum\limits_{i \in [n]} S_i(G') - \lambda \abs{E_{G'}}                               & > \sum\limits_{i \in [n]} S_i(G) - \lambda \abs{E_{G}}                  \\
+	\iff\sum\limits_{i \in [n]} S_i(G') - S_i(G)                                         & > \lambda (\abs{E_{G'}} - \abs{E_{G}})                                  \\
+	\iff\underbrace{\sum\limits_{i \in \set{u,v}} S_i(G') - S_i(G)}_{:= \Delta_S(G', G)} & > \lambda \underbrace{(\abs{E_{G'}} - \abs{E_{G}})}_{:= \Delta_E(G',G)}
 \end{align*}
 where
 $$
-	\Delta_E(G',G) := \abs{E_{G}'} - \abs{E_{G}} = \begin{cases}
+	\Delta_E(G',G) = \begin{cases}
 		1  & \text{addition} \\
 		0  & \text{flip}     \\
 		-1 & \text{deletion} \\
@@ -137,7 +137,7 @@ Similarly, two alterations $G_1$ and $G_2$ of $G$ can be compared:
 \end{align*}
 A derivation of this can be found in \autoref{sec:calc:comparison}.
 
-The implication of this is that hill climbing stops whenever the best improvement of the node scores is smaller than difference in edges that the change causes, scaled by the regularization constant.
+The interpretation of this is that a change has to bring an improvement of at least $\lambda$ per edge in order to improve the whole objective function.
 
 
 \section{Results}

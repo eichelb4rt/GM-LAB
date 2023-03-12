@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 import graphs
-import structure
+from structure import GreedySearcher
 import clock
 from test_likelihood import print_report
 
@@ -20,12 +20,16 @@ def main():
     empty_adjacency_matrix = np.full((n, n), False)
     graphs.save(empty_adjacency_matrix, name="empty")
 
+    detective = GreedySearcher(empty_adjacency_matrix,
+                               regularization_constant=20,
+                               n_taboo_walks=5,
+                               max_taboo_list_size=10,
+                               taboo_walk_length=5)
     clock.start("hill climb")
-    top_adjacency_matrix, node_scores = structure.hill_climb(empty_adjacency_matrix, dataset, regularization_constant=5)
+    top_adjacency_matrix = detective.fit(dataset)
     clock.stop("hill climb")
     clock.total("hill climb")
     print_report(top_adjacency_matrix, dataset)
-    print(f"scores: {np.sum(node_scores)}")
     graphs.save(top_adjacency_matrix, name="top")
     print(top_adjacency_matrix)
 
