@@ -1,0 +1,216 @@
+\documentclass[sigconf, fleqn]{acmart}
+\usepackage{booktabs}
+\usepackage{placeins}
+\usepackage{algorithmicx}
+\usepackage[noend]{algpseudocode}
+\usepackage{algorithm}
+\usepackage{subcaption}
+
+
+%% \BibTeX command to typeset BibTeX logo in the docs
+\AtBeginDocument{%
+  \providecommand\BibTeX{{%
+    \normalfont B\kern-0.5em{\scshape i\kern-0.25em b}\kern-0.8em\TeX}}}
+
+%% These commands are for a PROCEEDINGS abstract or paper.
+\settopmatter{printacmref=false} % Removes citation information below abstract
+\renewcommand\footnotetextcopyrightpermission[1]{} % removes footnote with conference information in 
+
+\acmConference[GM LAB]{Graphical Models LAB}{August 9}{Jena, Germany}
+
+
+\graphicspath{{graphics/}}
+
+\definecolor{myblue}{RGB}{46, 59, 160}
+\hypersetup{
+    pdfstartpage=1,
+    pdfstartview = FitB,
+    pdfpagelayout=SinglePage,
+    pdftitle={Project Report},
+    pdfsubject={Structure Learning},
+    pdfauthor={Maurice Wenig},
+    pdfcreator={Maurice Wenig},
+    pdfproducer={Maurice Wenig},
+    pdfkeywords={meta, information, pdf, hyperref, latex},
+    colorlinks=true,
+    linkcolor=myblue,
+    citecolor=myblue
+}
+
+%----- new commands
+\newcommand{\Romannumeral}[1]{\MakeUppercase{\romannumeral #1}}
+\newcommand{\set}[1]{\{#1\}}
+\newcommand{\abs}[1]{\left\vert #1 \right\vert}
+\newcommand{\norm}[1]{\left\| #1 \right\|}
+\newcommand{\skal}[2]{\left\langle #1 | #2 \right\rangle}
+\newcommand{\numberthis}{\addtocounter{equation}{1}\tag{\theequation}}
+%----- defs
+\def\notiff{\mathrel{{\ooalign{\hidewidth$\not\phantom{"}$\hidewidth\cr$\iff$}}}}
+\def\R{\mathbb{R}}
+\def\bbone{\text{\usefont{U}{bbold}{m}{n}1}}
+\def\1{\mathbb{1}}
+\def\T{\top}
+\def\pa{\text{pa}}
+\def\ndy{
+    \textcolor{red} {\hfill not done yet!}
+    \reversemarginpar
+    \marginpar{\raggedleft\textcolor{red}{\rule{2mm}{2mm}}}
+}
+\def\ghostline{\hfill\vspace*{-5mm}}
+
+\begin{document}
+
+%%
+%% The "title" command has an optional parameter,
+%% allowing the author to define a "short title" to be used in page headers.
+% Fast Entity Resolution With Mock Labels and Sorted Integer Sets
+\title[Project Report]{Project Report\\\large Graphical Models LAB}
+
+%%
+%% The "author" command and its associated commands are used to define
+%% the authors and their affiliations.
+
+\author{Maurice Wenig}
+\affiliation{%
+	\institution{Friedrich Schiller University Jena}
+	\country{Germany}}
+\email{maurice.wenig@uni-jena.de}
+
+
+%%
+%% This command processes the author and affiliation and title
+%% information and builds the first part of the formatted document.
+\maketitle
+
+% \let\thefootnote\relax\footnotetext{AEPRO 2022, March 1, Jena, Germany. Copyright \copyright 2022 for this paper by its authors. Use permitted under Creative Commons License Attribution 4.0 International (CC BY 4.0).}
+
+
+\section{Introduction}
+Some introduction.
+\FloatBarrier
+
+
+\section{Methods}
+\subsection{Choice of optimized score}
+% TODO: rewrite this? this is just for remembering what i did and why
+For the score function $p(G | D) \propto p(D | G) \cdot p(G)$, i used the approximation
+\begin{align*}
+	p(D | G)     & \approx p(D | G, \hat{\theta})               \\
+	\hat{\theta} & := \arg\max\limits_{\theta} p(D | G, \theta)
+\end{align*}
+and the prior
+$$p(G) \propto \frac{1}{|E|^\lambda}.$$
+With this, the objective function can be decomposed into the sum of independent node scores and a regularization term.
+\begin{align*}
+	\arg\max\limits_G p(G | D) & = \arg\max\limits_G \log p(D | G) + \log p(G)                          \\
+	                           & \approx \arg\max\limits_G p(D | G, \hat{\theta}) - \lambda \abs{E_G}   \\
+	                           & = \arg\max\limits_G \sum\limits_{i \in [n]} S_i(G) - \lambda \abs{E_G}
+\end{align*}
+where
+$$S_i(G) := -\abs{D} \cdot \log \hat{\sigma_i} - \frac{1}{2} \sum\limits_{x \in D} \left(\frac{x_i - (\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*)}{\hat{\sigma_i}}\right)^2$$
+and $\hat{\beta_i}, \hat{\beta_i}^*, \hat{\sigma_i}$ are the respective ML estimates for
+$$p(x_i | x_{\pa(i)}) \sim \mathcal{N}(\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*, \sigma_i^2).$$
+A derivation of this can be found in \autoref{sec:calc:score_function}.
+
+\subsection{Implications for Hill Climbing}
+Elementary changes (addition, substraction, flip of an edge) only influence local distributions.
+That means if we construct a graph $G'$, where $G'$ was made by applying an elementary change to an edge $(u, v)$ in $G$, the comparison $p(G' | D) > p(G | D)$ can be evaluated locally:
+\begin{align*}
+	\sum\limits_{i \in [n]} S_i(G') - \lambda \abs{E_{G'}}                               & > \sum\limits_{i \in [n]} S_i(G) - \lambda \abs{E_{G}} \\
+	\iff\sum\limits_{i \in [n]} S_i(G') - S_i(G)                                         & > \lambda (\abs{E_{G'}} - \abs{E_{G}})                 \\
+	\iff\underbrace{\sum\limits_{i \in \set{u,v}} S_i(G') - S_i(G)}_{:= \Delta_S(G', G)} & > \lambda \Delta_E(G',G)
+\end{align*}
+where
+$$
+	\Delta_E(G',G) := \abs{E_{G}'} - \abs{E_{G}} = \begin{cases}
+		1  & \text{addition} \\
+		0  & \text{flip}     \\
+		-1 & \text{deletion} \\
+	\end{cases}
+$$
+Note that $\Delta_S(G', G)$ measures the improvement of node scores when the change is applied to $G$.
+
+Similarly, two alterations $G_1$ and $G_2$ of $G$ can be compared:
+\begin{align*}
+	\sum\limits_{i \in [n]} S_i(G_1) - \lambda \abs{E_{G_1}} & > \sum\limits_{i \in [n]} S_i(G_2) - \lambda \abs{E_{G_2}} \\
+	\iff \Delta_S(G_1, G) - \Delta_S(G_2, G)                 & > \lambda \left(\Delta_E(G_1,G) - \Delta_E(G_2,G)\right)   \\
+\end{align*}
+A derivation of this can be found in \autoref{sec:calc:comparison}.
+
+The implication of this is that hill climbing stops whenever the best improvement of the node scores is smaller than difference in edges that the change causes, scaled by the regularization constant.
+
+
+\section{Results}
+\subsection{Performance}
+Some performance analysis
+
+
+\subsection{Likelihood}
+\label{sec:results:likelihood}
+Cross validation time.
+\begin{table}[htbp]
+	\caption{Error Score Comparison}
+	\label{tab:results:errors}
+	\begin{tabular}{lrrr}
+		\toprule
+		Recommender   & RMSE  & MAE   \\
+		\midrule
+		user based    & 0.670 & 0.301 \\
+		item based    & 0.569 & 0.222 \\
+		factorization & 0.512 & 0.207 \\
+		hybrid        & 0.496 & 0.193 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+\FloatBarrier
+
+
+\section{Conclusion}
+Some conclusion.
+
+\typeout{}
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{literature}
+
+% TODO: derive S_i(G) in the appendix properly
+\clearpage
+\appendix
+\section{Calculations}
+\subsection{Score Function}
+\label{sec:calc:score_function}
+Here we derive
+$$\max\limits_G p(D | G, \hat{\theta}) = \max\limits_G \sum\limits_{i \in [n]} S_i(G)$$
+\begin{gather*}
+	\max\limits_G p(D | G, \hat{\theta})\\
+	= \max\limits_G \prod\limits_{x \in D} p(x | G, \hat{\theta})\\
+	= \max\limits_G \prod\limits_{x \in D} \prod\limits_{i \in [n]} p(x_i | x_{\pa(i)}, \hat{\beta_i}, \hat{\beta_i}^*, \hat{\sigma_i})\\
+	= \max\limits_G \sum\limits_{x \in D} \sum\limits_{i \in [n]} \log p(x_i | x_{\pa(i)}, \hat{\beta_i}, \hat{\beta_i}^*, \hat{\sigma_i})\\
+	= \max\limits_G \sum\limits_{x \in D} \sum\limits_{i \in [n]} \log \left[\frac{1}{\sqrt{2\pi} \sigma_i} \exp \left(-\frac{1}{2}\left(\frac{x_i - (\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*)}{\sigma_i}\right)^2\right)\right]\\
+	= \max\limits_G \sum\limits_{x \in D} \sum\limits_{i \in [n]} \left[-\frac{1}{2} \left(\frac{x_i - (\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*)}{\sigma_i}\right)^2 - \log \hat{\sigma_i} - \frac{1}{2} \log 2\pi\right]\\
+	= \max\limits_G \sum\limits_{i \in [n]} \underbrace{\left[-\abs{D} \cdot \log \hat{\sigma_i} - \frac{1}{2} \sum\limits_{x \in D} \left(\frac{x_i - (\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*)}{\hat{\sigma_i}}\right)^2\right]}_{= S_i(G)}
+	\qed
+\end{gather*}
+Note that $\hat{\theta}$ ($\hat{\beta_i}, \hat{\sigma_i}$) depends on $G$ ($\pa(i)$).
+
+\subsection{Graph Comparison}
+\label{sec:calc:comparison}
+For a graph $G'$ that was made by applying one elementary change to a graph $G$, it holds that
+\begin{equation}
+	\sum\limits_{i \in [n]} S_i(G') = \sum\limits_{i \in [n]} S_i(G) + \Delta_S(G', G) \label{comp_1}
+\end{equation}
+and
+\begin{equation}
+	\abs{E_{G'}} = \abs{E_{G}} + \Delta_E(G', G) \label{comp_2}
+\end{equation}
+Therefore
+\begin{align*}
+	\sum\limits_{i \in [n]} S_i(G_1) - \lambda \abs{E_{G_1}}                                  & > \sum\limits_{i \in [n]} S_i(G_2) - \lambda \abs{E_{G_2}} \\
+	\stackrel{\eqref{comp_1},\eqref{comp_2}}{\iff} \Delta_S(G_1, G) - \lambda \Delta_E(G_1,G) & > \Delta_S(G_2, G) - \lambda \Delta_E(G_2,G)               \\
+	\iff \Delta_S(G_1, G) - \Delta_S(G_2, G)                                                  & > \lambda \left(\Delta_E(G_1,G) - \Delta_E(G_2,G)\right)   \\
+\end{align*}
+
+
+\end{document}
+\endinput
+%%
+%% End of file `sample-sigconf.tex'.
