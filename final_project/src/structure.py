@@ -1,10 +1,11 @@
 import numpy as np
+import pandas as pd
 from enum import Enum
 from queue import Queue
 import numpy.typing as npt
 
 import graphs
-from network import linear_regression, log_likelihood_linear_regression
+from network import linear_regression
 
 
 class ChangeType(Enum):
@@ -44,6 +45,18 @@ def revert_change(adjacency_matrix: npt.NDArray[np.bool_], changed_edge: tuple[i
         adjacency_matrix[from_node, to_node] = True
         adjacency_matrix[to_node, from_node] = False
         return
+    raise ValueError(f"Unsupported change type: {change_type}")
+
+
+def edge_difference(change_type: ChangeType) -> int:
+    """The edge difference of E_G' - E_G when this type of change is applied."""
+
+    if change_type == ChangeType.Addition:
+        return 1
+    if change_type == ChangeType.Flip:
+        return 0
+    if change_type == ChangeType.Deletion:
+        return -1
     raise ValueError(f"Unsupported change type: {change_type}")
 
 
@@ -104,15 +117,19 @@ def possible_changes(adjacency_matrix: npt.NDArray[np.bool_], change_type: Chang
 def node_score(node: int, parents: list[int], dataset: npt.NDArray[np.float32]) -> float:
     """Calculates the score of a single node. Basically the likelihood of the node having the given parents."""
 
+    n = dataset.shape[0]
     x = dataset[:, parents]
     y = dataset[:, node]
-    # do a linear regression and save the parameters
+    # do a linear regression
     beta, sigma = linear_regression(x, y)
-    return log_likelihood_linear_regression(x, y, beta, sigma)
+    # calculate the score (similar to the likelihood)
+    x_padded: npt.NDArray[np.float32] = np.c_[np.ones(n), x]
+    mu = x_padded @ beta
+    return -0.5 * np.sum(((y - mu) / sigma)**2) - n * np.log(sigma)
 
 
-def change_score(changed_edge: tuple[int, int], change_type: ChangeType, adjacency_matrix: npt.NDArray[np.bool_], node_scores: npt.NDArray[np.float32], dataset: npt.NDArray[np.float32]) -> float:
-    """Returns how much that change improves the overall score."""
+def changed_scores(changed_edge: tuple[int, int], change_type: ChangeType, adjacency_matrix: npt.NDArray[np.bool_], node_scores: npt.NDArray[np.float32], dataset: npt.NDArray[np.float32]) -> tuple[float, float]:
+    """Returns the new scores of the affected nodes if the change was applied."""
 
     from_node, to_node = changed_edge
     # change the adjacency matrix temporarily
@@ -121,76 +138,96 @@ def change_score(changed_edge: tuple[int, int], change_type: ChangeType, adjacen
     if change_type == ChangeType.Addition or change_type == ChangeType.Deletion:
         # regardless whether the edge was added or deleted, the only distribution updated will be the one of the to_node
         parents = graphs.neighbours_in(to_node, adjacency_matrix)
-        new_node_score = node_score(to_node, parents, dataset)
-        improvement = new_node_score - node_scores[to_node]
+        new_from_score = node_scores[from_node]
+        new_to_score = node_score(to_node, parents, dataset)
     elif change_type == ChangeType.Flip:
         # the only distributions updated will be the ones of from_node and to_node
         parents_from = graphs.neighbours_in(from_node, adjacency_matrix)
         new_from_score = node_score(from_node, parents_from, dataset)
         parents_to = graphs.neighbours_in(to_node, adjacency_matrix)
         new_to_score = node_score(to_node, parents_to, dataset)
-        improvement = (new_from_score + new_to_score) - (node_scores[from_node] + node_scores[to_node])
     else:
         raise ValueError(f"Unsupported change type: {change_type}")
     # revert the temporal change
     revert_change(adjacency_matrix, changed_edge, change_type)
-    return improvement
+    return new_from_score, new_to_score
 
 
-def find_top_change(adjacency_matrix: npt.NDArray[np.bool_], node_scores: npt.NDArray[np.float32], dataset: npt.NDArray[np.float32]) -> tuple[float, tuple[int, int], ChangeType]:
-    """Finds the change that yields the best improvement. Returns the improvement, the changed edge as a tuple and the change type."""
+def find_top_change(adjacency_matrix: npt.NDArray[np.bool_], node_scores: npt.NDArray[np.float32], dataset: npt.NDArray[np.float32], regularization_constant: float = 0) -> tuple[float, tuple[int, int], ChangeType, tuple[float, float]]:
+    """Finds the change that yields the best improvement. Returns:
+        - the improvement
+        - the changed edge as a tuple
+        - the change type
+        - the changed node scores of the nodes of the edge"""
 
+    # needed to figure out the best change
     top_improvement = -np.infty
+    top_edge_difference = 0
     # keep track of what change was the best
-    top_change: tuple[int, int] = None
-    top_change_type: ChangeType = None
+    top_change: tuple[int, int]
+    top_change_type: ChangeType
+    new_node_scores: tuple[float, float]
     for change_type in ChangeType:
         for changed_edge in possible_changes(adjacency_matrix, change_type):
-            improvement = change_score(changed_edge, change_type, adjacency_matrix, node_scores, dataset)
+            new_from_score, new_to_score = changed_scores(changed_edge, change_type, adjacency_matrix, node_scores, dataset)
+            from_node, to_node = changed_edge
+            improvement = (new_from_score + new_to_score) - (node_scores[from_node] + node_scores[to_node])
+            current_edge_difference = edge_difference(change_type)
             # if we get a better improvement, update
-            if improvement > top_improvement:
+            if improvement - top_improvement > regularization_constant * (current_edge_difference - top_edge_difference):
                 top_improvement = improvement
                 top_change = changed_edge
                 top_change_type = change_type
-    return top_improvement, top_change, top_change_type
+                new_node_scores = (new_from_score, new_to_score)
+                top_edge_difference = current_edge_difference
+    return top_improvement, top_change, top_change_type, new_node_scores
 
 
-def hill_climb(initial_adjacency_matrix: npt.NDArray[np.bool_], dataset: npt.NDArray[np.float32]) -> tuple[npt.NDArray[np.bool_], float]:
-    """Greedy search for better adjacency matrices. Initial score can be passed to avoid calculating it again. Returns the final adjacency matrix and the respective score."""
+def hill_climb(initial_adjacency_matrix: npt.NDArray[np.bool_], dataset: npt.NDArray[np.float32], regularization_constant: float = 0, node_scores: npt.NDArray[np.float32] = None) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.float32]]:
+    """Greedy search for better adjacency matrices. Initial score can be passed to avoid calculating it again. Returns the final adjacency matrix and the respective node scores."""
 
     n_nodes = graphs.n_nodes(initial_adjacency_matrix)
     top_adjacency_matrix = initial_adjacency_matrix.copy()
-    node_scores: npt.NDArray[np.float32] = np.empty(n_nodes)
-    # initialize node scores (they only have to be watched locally, because the changes are only local)
-    for node in range(n_nodes):
-        parents = graphs.neighbours_in(node, top_adjacency_matrix)
-        node_scores[node] = node_score(node, parents, dataset)
+    # if it's not passed as an argument, initialize node scores (they only have to be watched locally, because the changes are only local)
+    if node_scores is None:
+        node_scores: npt.NDArray[np.float32] = np.empty(n_nodes)
+        for node in range(n_nodes):
+            parents = graphs.neighbours_in(node, top_adjacency_matrix)
+            node_scores[node] = node_score(node, parents, dataset)
     # climb the hill
     # pretend we improved already to get into the loop
     top_improvement = 1
     while top_improvement > 0:
-        top_improvement, top_changed_edge, top_change_type = find_top_change(top_adjacency_matrix, node_scores, dataset)
-        # TODO: what node scores where changed and how?
-        # TODO: apply changes
+        top_improvement, top_change, top_change_type, new_node_scores = find_top_change(top_adjacency_matrix, node_scores, dataset, regularization_constant)
         # we looked through all possible changes and determined the best, now apply it
-        pass
+        apply_change(top_adjacency_matrix, top_change, top_change_type)
+        print(top_improvement)
+        # change node scores
+        from_node, to_node = top_change
+        new_from_score, new_to_score = new_node_scores
+        node_scores[from_node] = new_from_score
+        node_scores[to_node] = new_to_score
+    return top_adjacency_matrix, node_scores
 
 
 def main():
-    n = 12
-    taboo_graphs: Queue[npt.NDArray[np.bool_]] = Queue[npt.NDArray[np.bool_]]()
-    some_adjacency_matrix = np.full((n, n), False)
-    for i in range(n):
-        for j in range(i + 1, n):
-            some_adjacency_matrix[i, j:] = True
-    taboo_graphs.put(some_adjacency_matrix)
-    for adjacency_matrix in taboo_graphs.queue:
-        print(adjacency_matrix)
-    for adjacency_matrix in taboo_graphs.queue:
-        print(adjacency_matrix)
-    print(len(possible_flips(adjacency_matrix)))
-    for change_type in ChangeType:
-        print(change_type)
+    # n = 12
+    # taboo_graphs: Queue[npt.NDArray[np.bool_]] = Queue[npt.NDArray[np.bool_]]()
+    # for i in range(n):
+    #     for j in range(i + 1, n):
+    #         some_adjacency_matrix[i, j:] = True
+    # taboo_graphs.put(some_adjacency_matrix)
+    # for adjacency_matrix in taboo_graphs.queue:
+    #     print(adjacency_matrix)
+    # for adjacency_matrix in taboo_graphs.queue:
+    #     print(adjacency_matrix)
+    # print(len(possible_flips(adjacency_matrix)))
+    # for change_type in ChangeType:
+    #     print(change_type)
+    dataset = pd.read_csv("trainset.csv").to_numpy()
+    n = dataset.shape[1]
+    empty_adjacency_matrix = np.full((n, n), False)
+    top_adjacency_matrix, node_scores = hill_climb(empty_adjacency_matrix, dataset)
 
 
 if __name__ == "__main__":

@@ -70,6 +70,15 @@ def train_log_likelihood(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray
     return gbn.log_likelihood(x)
 
 
+def print_report(adjacency_matrix: npt.NDArray[np.bool_], dataset: npt.NDArray[np.float32], rotations: int = DEFAULT_ROTATIONS):
+    n_params = graphs.n_edges(adjacency_matrix)
+    print(f"number of parameters: {n_params}")
+    cross_log_likelihood = cross_validate(adjacency_matrix, dataset, rotations)
+    print(f"total log likelihood of test sets is {cross_log_likelihood}")
+    train_set_log_likelihood = train_log_likelihood(adjacency_matrix, dataset)
+    print(f"total log likelihood of train set is {train_set_log_likelihood}")
+
+
 def test_tests():
     # test gen_test_mask
     for n_samples in range(50, 100):
@@ -105,12 +114,7 @@ def main():
     dataset = pd.read_csv("trainset.csv").to_numpy()
 
     print(f"report: {args.filename}")
-    n_params = graphs.n_edges(adjacency_matrix)
-    print(f"number of parameters: {n_params}")
-    cross_log_likelihood = cross_validate(adjacency_matrix, dataset, args.rotations)
-    print(f"total log likelihood of test sets is {cross_log_likelihood}")
-    train_set_log_likelihood = train_log_likelihood(adjacency_matrix, dataset)
-    print(f"total log likelihood of train set is {train_set_log_likelihood}")
+    print_report(adjacency_matrix, dataset, args.rotations)
 
 
 if __name__ == "__main__":

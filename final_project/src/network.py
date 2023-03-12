@@ -34,7 +34,7 @@ def linear_regression(x: npt.NDArray[np.float32], y: npt.NDArray[np.float32], la
 def log_likelihood_linear_regression(x: npt.NDArray[np.float32], y: npt.NDArray[np.float32], beta: npt.NDArray[np.float32], sigma: float) -> float:
     x_padded: npt.NDArray[np.float32] = np.c_[np.ones(x.shape[0]), x]
     mu = x_padded @ beta
-    return np.sum(-0.5 * ((y - mu) / sigma)**2 - np.log(sigma) - 0.5 * np.log(2 * np.pi))
+    return - np.sum(0.5 * ((y - mu) / sigma)**2 + np.log(sigma) + 0.5 * np.log(2 * np.pi))
 
 
 class MultivariateGaussian:

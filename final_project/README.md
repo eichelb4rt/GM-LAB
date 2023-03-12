@@ -1,12 +1,23 @@
 # Graphical Models LAB final project
 
 - [Adjacency matrices](#adjacency-matrices)
+- [Learn Structure](#learn-structure)
 - [Test Likelihood](#test-likelihood)
 - [Render Graphs](#render-graphs)
 
 ## Adjacency matrices
 
 Adjacency matrices are stored in `.npy` files in the `graphs` directory.
+
+## Learn Structure
+
+Learns the structure that maximizes the posterior probability $p(G | D) \propto p(D | G) \cdot p(G)$ where $p(D | G)$ is chosen to be the likelihood of the ML estimate of the parameters given the graph, and $p(G) \propto \frac{1}{|E|^\lambda}$. This results in $\max_G p(G | D) = \max_G \log p(D | G) + \log p(G) = \max_G \log p(D | G) - \lambda |E|$
+
+<!-- NOTES -->
+
+The ML estimate of the 
+
+This results in an update whenever $p(G' | D) > p(G | D) \iff $
 
 ## Test Likelihood
 
