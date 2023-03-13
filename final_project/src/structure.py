@@ -142,7 +142,7 @@ def hash_adj(adjacency_matrix: npt.NDArray[np.bool_]) -> bytes:
 
 
 class GreedySearcher:
-    def __init__(self, initial_adjacency_matrix: npt.NDArray[np.bool_], regularization_constant: float = 0, n_taboo_walks: int = 0, max_taboo_list_size: int = 0, taboo_walk_length: int = 0) -> None:
+    def __init__(self, initial_adjacency_matrix: npt.NDArray[np.bool_], regularization_constant: float = 0, n_tabu_walks: int = 0, max_tabu_list_size: int = 0, tabu_walk_length: int = 0, n_random_restarts: int = 0, random_walk_length: int = 0) -> None:
         self.initial_adjacency_matrix = initial_adjacency_matrix
         self.regularization_constant = regularization_constant
         self.n_nodes = graphs.n_nodes(initial_adjacency_matrix)
@@ -150,14 +150,17 @@ class GreedySearcher:
         self.top_adjacency_matrix: npt.NDArray[np.bool_]
         self.node_scores: npt.NDArray[np.float64]
 
-        self.n_taboo_walks = n_taboo_walks
-        self.max_taboo_list_size = max_taboo_list_size
-        self.taboo_walk_length = taboo_walk_length
-        self.taboo_list: Queue[bytes]
-        self.taboo_list_size: int
+        self.n_tabu_walks = n_tabu_walks
+        self.max_tabu_list_size = max_tabu_list_size
+        self.tabu_walk_length = tabu_walk_length
+        self.tabu_list: Queue[bytes]
+        self.tabu_list_size: int
+
+        self.n_random_restarts = n_random_restarts
+        self.random_walk_length = random_walk_length
 
     def fit(self, dataset: npt.NDArray[np.float64]) -> npt.NDArray[np.bool_]:
-        """Greedy search for better adjacency matrices with taboo search and random resets. Returns the top adjacency matrix."""
+        """Greedy search for better adjacency matrices with tabu search and random resets. Returns the top adjacency matrix."""
 
         # init stuff
         self.top_adjacency_matrix = self.initial_adjacency_matrix.copy()
@@ -166,12 +169,16 @@ class GreedySearcher:
             parents = graphs.neighbours_in(node, self.top_adjacency_matrix)
             self.node_scores[node] = node_score(node, parents, dataset)
 
-        self.taboo_list = Queue()
-        self.taboo_list_size = 0
+        self.tabu_list = Queue()
+        self.tabu_list_size = 0
         # climb and stuff
-        for _ in range(self.n_taboo_walks):
+        self.hill_climb(dataset)
+        for _ in range(self.n_random_restarts):
+            for _ in range(self.n_tabu_walks):
+                self.tabu_walk(dataset)
+                self.hill_climb(dataset)
+            self.random_restart(dataset)
             self.hill_climb(dataset)
-            self.taboo_walk(dataset)
         return self.top_adjacency_matrix
 
     def hill_climb(self, dataset: npt.NDArray[np.float64]):
@@ -189,40 +196,49 @@ class GreedySearcher:
             # we looked through all possible changes and determined the best, now apply it
             if top_improvement > self.regularization_constant * delta_e:
                 apply_change(self.top_adjacency_matrix, top_changed_edge, top_change_type)
-                print(top_improvement)
                 # change node scores
                 from_node, to_node = top_changed_edge
                 new_from_score, new_to_score = new_node_scores
                 self.node_scores[from_node] = new_from_score
                 self.node_scores[to_node] = new_to_score
-                self.update_taboo_list()
+                self.update_tabu_list()
                 # print(np.sum(self.node_scores))
 
-    def taboo_walk(self, dataset: npt.NDArray[np.float64]):
-        for i in range(self.taboo_walk_length):
-            # set for fast acces (we don't want to go through the list every time we check if an adjacency matrix is taboo)
-            taboo_hashes: set[bytes] = set(self.taboo_list.queue)
-            # construct all changes that are not taboo
+    def tabu_walk(self, dataset: npt.NDArray[np.float64]):
+        for i in range(self.tabu_walk_length):
+            # set for fast acces (we don't want to go through the list every time we check if an adjacency matrix is tabu)
+            tabu_hashes: set[bytes] = set(self.tabu_list.queue)
+            # construct all changes that are not tabu
             all_possible_changes = construct_all_changes(self.top_adjacency_matrix)
             # in the first step, we already visited every possible change (because we came from hill climbing where the last step considered every possible change)
             # so we just get a freebie on this one
             if i == 0:
-                non_taboo_changes = all_possible_changes
+                non_tabu_changes = all_possible_changes
             else:
-                non_taboo_changes = [(change_type, changed_edge) for change_type, changed_edge in all_possible_changes if self.resulting_hash(changed_edge, change_type) not in taboo_hashes]
-            if len(non_taboo_changes) == 0:
-                break
+                non_tabu_changes = [(change_type, changed_edge) for change_type, changed_edge in all_possible_changes if self.resulting_hash(changed_edge, change_type) not in tabu_hashes]
             # find the top change among them
-            top_improvement, top_change, top_change_type, new_node_scores = self.find_top_change(non_taboo_changes, dataset)
-            # we looked through all non-taboo changes and determined the best, now apply it
-            apply_change(self.top_adjacency_matrix, top_change, top_change_type)
-            print(f"taboo: {top_improvement}")
+            top_improvement, top_changed_edge, top_change_type, new_node_scores = self.find_top_change(non_tabu_changes, dataset)
+            # we looked through all non-tabu changes and determined the best, now apply it
+            apply_change(self.top_adjacency_matrix, top_changed_edge, top_change_type)
             # change node scores
-            from_node, to_node = top_change
+            from_node, to_node = top_changed_edge
             new_from_score, new_to_score = new_node_scores
             self.node_scores[from_node] = new_from_score
             self.node_scores[to_node] = new_to_score
-            self.update_taboo_list()
+            self.update_tabu_list()
+
+    def random_restart(self, dataset: npt.NDArray[np.float64]):
+        for _ in range(self.random_walk_length):
+            # get a random change
+            all_possible_changes = construct_all_changes(self.top_adjacency_matrix)
+            random_change_type, random_changed_edge = all_possible_changes[np.random.choice(len(all_possible_changes))]
+            # apply it
+            new_from_score, new_to_score = self.changed_scores(random_changed_edge, random_change_type, dataset)
+            apply_change(self.top_adjacency_matrix, random_changed_edge, random_change_type)
+            from_node, to_node = random_changed_edge
+            self.node_scores[from_node] = new_from_score
+            self.node_scores[to_node] = new_to_score
+            self.update_tabu_list()
 
     def find_top_change(self, changes: list[tuple[ChangeType, Edge]], dataset: npt.NDArray[np.float64]) -> tuple[float, Edge, ChangeType, tuple[float, float]]:
         """Finds the change among the passed changes that yields the best improvement. Returns:
@@ -235,7 +251,7 @@ class GreedySearcher:
         top_improvement = -np.infty
         top_edge_difference = 0
         # keep track of what change was the best
-        top_change: Edge
+        top_changed_edge: Edge
         top_change_type: ChangeType
         new_node_scores: tuple[float, float]
         for change_type, changed_edge in changes:
@@ -246,11 +262,11 @@ class GreedySearcher:
             # if we get a better improvement (that is worth the edges), update
             if improvement - top_improvement > self.regularization_constant * (current_edge_difference - top_edge_difference):
                 top_improvement = improvement
-                top_change = changed_edge
+                top_changed_edge = changed_edge
                 top_change_type = change_type
                 new_node_scores = (new_from_score, new_to_score)
                 top_edge_difference = current_edge_difference
-        return top_improvement, top_change, top_change_type, new_node_scores
+        return top_improvement, top_changed_edge, top_change_type, new_node_scores
 
     def changed_scores(self, changed_edge: Edge, change_type: ChangeType, dataset: npt.NDArray[np.float64]) -> tuple[float, float]:
         """Returns the new scores of the affected nodes if the change was applied."""
@@ -282,25 +298,25 @@ class GreedySearcher:
         revert_change(self.top_adjacency_matrix, changed_edge, change_type)
         return changed_hash
 
-    def update_taboo_list(self):
+    def update_tabu_list(self):
         adjacency_matrix_hash = hash_adj(self.top_adjacency_matrix)
-        self.taboo_list.put(adjacency_matrix_hash)
-        if self.taboo_list_size > self.max_taboo_list_size:
-            self.taboo_list.get()
+        self.tabu_list.put(adjacency_matrix_hash)
+        if self.tabu_list_size > self.max_tabu_list_size:
+            self.tabu_list.get()
         else:
-            self.taboo_list_size += 1
+            self.tabu_list_size += 1
 
 
 def main():
     # n = 12
-    # taboo_graphs: Queue[npt.NDArray[np.bool_]] = Queue[npt.NDArray[np.bool_]]()
+    # tabu_graphs: Queue[npt.NDArray[np.bool_]] = Queue[npt.NDArray[np.bool_]]()
     # for i in range(n):
     #     for j in range(i + 1, n):
     #         some_adjacency_matrix[i, j:] = True
-    # taboo_graphs.put(some_adjacency_matrix)
-    # for adjacency_matrix in taboo_graphs.queue:
+    # tabu_graphs.put(some_adjacency_matrix)
+    # for adjacency_matrix in tabu_graphs.queue:
     #     print(adjacency_matrix)
-    # for adjacency_matrix in taboo_graphs.queue:
+    # for adjacency_matrix in tabu_graphs.queue:
     #     print(adjacency_matrix)
     # print(len(possible_flips(adjacency_matrix)))
     # for change_type in ChangeType:
