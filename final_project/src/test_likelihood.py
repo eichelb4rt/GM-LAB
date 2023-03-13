@@ -63,7 +63,6 @@ def cross_validate_structure(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDA
     """Calculates the log likelihood with a sort-of cross validation (splits up data into multiple training and test sets and sums up the log likelihood of the test sets). This is done to catch overfitting."""
 
     log_likelihoods = np.empty(rotations)
-    progress = Progress(rotations)
     clock.start("total")
     for i in range(rotations):
         x_train, x_test = split_train_test(x, rotations, i)
@@ -73,7 +72,6 @@ def cross_validate_structure(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDA
         clock.start("calculating log likelihood")
         log_likelihoods[i] = gbn.log_likelihood(x_test)
         clock.stop("calculating log likelihood")
-        progress.update(i + 1)
     clock.stop("total")
     # print runtime
     clock.avg("fitting data")

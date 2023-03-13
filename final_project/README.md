@@ -4,6 +4,7 @@
 - [Learn Structure](#learn-structure)
 - [Test Likelihood](#test-likelihood)
 - [Render Graphs](#render-graphs)
+- [Visualization](#visualization)
 
 ## Adjacency matrices
 
@@ -11,13 +12,11 @@ Adjacency matrices are stored in `.npy` files in the `graphs` directory.
 
 ## Learn Structure
 
-Learns the structure that maximizes the posterior probability $p(G | D) \propto p(D | G) \cdot p(G)$ where $p(D | G)$ is chosen to be the likelihood of the ML estimate of the parameters given the graph, and $p(G) \propto \frac{1}{|E|^\lambda}$. This results in $\max_G p(G | D) = \max_G \log p(D | G) + \log p(G) = \max_G \log p(D | G) - \lambda |E|$
+`src/structure.py` does a greedy search with tabu walks and random restarts for the adjacency matrix with the highest objective function.
+The `GreedySearcher` has multiple arguments:
 
-<!-- NOTES -->
-
-The ML estimate of the 
-
-This results in an update whenever $p(G' | D) > p(G | D) \iff $
+<!-- TODO -->
+- bla bla bla
 
 ## Test Likelihood
 
@@ -57,3 +56,8 @@ Adjacency matrices and can be rendered with `./render.sh <filename>`. The result
 ```text
 ./render.sh graphs/full.npy
 ```
+
+## Visualization
+
+<!-- TODO -->
+bla bla

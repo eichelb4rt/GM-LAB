@@ -5,74 +5,99 @@ import graphs
 from structure import GreedySearcher
 import clock
 from test_likelihood import print_report, cross_validate_detective
+from visualize import visualize_score_history, visualize_tabu_walk
 
 
 def main():
     dataset = pd.read_csv("trainset.csv").to_numpy()
     n = dataset.shape[1]
-
-    full_adjacency_matrix = np.full((n, n), False)
-    for i in range(n):
-        for j in range(i + 1, n):
-            full_adjacency_matrix[i, j:] = True
-    graphs.save(full_adjacency_matrix, name="full")
-
     empty_adjacency_matrix = np.full((n, n), False)
-    graphs.save(empty_adjacency_matrix, name="empty")
 
-    # 90: 0
-    # 82: 0.2
-    # 78: 0.5
-    # 76: 1
-    # 72: 2
-    # 67: 3
-    # 63: 4.5
-    # 62: 5
-    # 61: 5
-    # 60: 5.2
-    # 58: 5.5
-    # 57: 6
-    # 55: 8
-    # 54: 10
-    # 49: 15
-    # 48: 21
-    # 47: 22
-    # 46: 23.15 (??? lol)
-    # 44: 23.1
-    # 43: 25
-    # 40: 30
-    # 38: 50
-    # 36: 60
-    # 35: 80
-    # 34: 100
-    # 33: 120
-    # 32: 150
-    # 30: 194
-    # 29: 240
-    # 28: 280
-    # 27: 350
-    # 26: 360
-    # 25: 370
+    # NOTE: turn off logging for a small performance boost
+    # NOTE: small number of parameters (43)
+    # detective = GreedySearcher(empty_adjacency_matrix,
+    #                            regularization_constant=25,
+
+    #                            n_tabu_walks=3,
+    #                            max_tabu_list_size=10,
+    #                            tabu_walk_length=5,
+
+    #                            n_random_restarts=5,
+    #                            random_walk_length=5,
+
+    #                            logging_enabled=True)
+    # NOTE: small 2
+    # detective = GreedySearcher(empty_adjacency_matrix,
+    #                            regularization_constant=25,
+
+    #                            n_tabu_walks=3,
+    #                            max_tabu_list_size=100,
+    #                            tabu_walk_length=20,
+
+    #                            n_random_restarts=5,
+    #                            random_walk_length=5,
+
+    #                            logging_enabled=True)
+    # NOTE: medium number of parameters (54)
+    # detective = GreedySearcher(empty_adjacency_matrix,
+    #                            regularization_constant=8,
+
+    #                            n_tabu_walks=3,
+    #                            max_tabu_list_size=150,
+    #                            tabu_walk_length=30,
+
+    #                            n_random_restarts=5,
+    #                            random_walk_length=5,
+
+    #                            logging_enabled=True)
+    # NOTE: medium 2
+    # detective = GreedySearcher(empty_adjacency_matrix,
+    #                            regularization_constant=8,
+
+    #                            n_tabu_walks=3,
+    #                            max_tabu_list_size=400,
+    #                            tabu_walk_length=80,
+
+    #                            n_random_restarts=5,
+    #                            random_walk_length=5,
+
+    #                            logging_enabled=True)
+    # NOTE: big number of parameters (67)
+    # detective = GreedySearcher(empty_adjacency_matrix,
+    #                            regularization_constant=3,
+
+    #                            n_tabu_walks=3,
+    #                            max_tabu_list_size=300,
+    #                            tabu_walk_length=70,
+
+    #                            n_random_restarts=5,
+    #                            random_walk_length=10,
+
+    #                            logging_enabled=True)
+    # NOTE: big 2
     detective = GreedySearcher(empty_adjacency_matrix,
-                               regularization_constant=4.5,
-                               n_tabu_walks=5,
-                               max_tabu_list_size=10,
-                               tabu_walk_length=5,
+                               regularization_constant=3,
+
+                               n_tabu_walks=3,
+                               max_tabu_list_size=2000,
+                               tabu_walk_length=150,
+
                                n_random_restarts=5,
-                               random_walk_length=3)
+                               random_walk_length=10,
+
+                               logging_enabled=True)
     clock.start("hill climb")
+    print("climbing...")
     top_adjacency_matrix = detective.fit(dataset)
     clock.stop("hill climb")
     clock.total("hill climb")
     print_report(top_adjacency_matrix, dataset)
     graphs.save(top_adjacency_matrix, name=f"top_{graphs.n_params(top_adjacency_matrix)}")
+    np.save("logs/big_2a.npy", np.array((detective.score_history, detective.method_starts), dtype=object))
 
+    # NOTE: uncomment to cross validate stuff
     # log_likelihood = cross_validate_detective(detective, dataset)
     # print(f"log likelihood: {log_likelihood}")
-
-    # test_arr = np.array([])
-    # test_arr = np.insert(test_arr, 0, 1)
-    # print(test_arr)
 
 
 if __name__ == "__main__":
