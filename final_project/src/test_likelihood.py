@@ -92,8 +92,7 @@ def train_log_likelihood(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray
 
 
 def print_report(adjacency_matrix: npt.NDArray[np.bool_], dataset: npt.NDArray[np.float64], rotations: int = DEFAULT_ROTATIONS):
-    n_edges = graphs.n_edges(adjacency_matrix)
-    print(f"number of edges: {n_edges}")
+    print(f"number of parameters: {graphs.n_params(adjacency_matrix)}")
     cross_log_likelihood = cross_validate_structure(adjacency_matrix, dataset, rotations)
     print(f"total log likelihood of test sets is {cross_log_likelihood}")
     train_set_log_likelihood = train_log_likelihood(adjacency_matrix, dataset)

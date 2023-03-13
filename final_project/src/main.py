@@ -20,32 +20,41 @@ def main():
     empty_adjacency_matrix = np.full((n, n), False)
     graphs.save(empty_adjacency_matrix, name="empty")
 
-    # 66: 0
-    # 58: 0.2
-    # 54: 0.5
-    # 52: 1
-    # 48: 2
-    # 43: 3
-    # 37: 5
-    # 31: 8
-    # 30: 10
-    # 25: 15
-    # 19: 25
-    # 16: 30
-    # 14: 50
-    # 12: 60
-    # 11: 80
-    # 10: 100
-    # 9: 120
-    # 8: 150
-    # 6: 194
-    # 5: 240
-    # 4: 280
-    # 3: 350
-    # 2: 360
-    # 1: 370
+    # 90: 0
+    # 82: 0.2
+    # 78: 0.5
+    # 76: 1
+    # 72: 2
+    # 67: 3
+    # 63: 4.5
+    # 62: 5
+    # 61: 5
+    # 60: 5.2
+    # 58: 5.5
+    # 57: 6
+    # 55: 8
+    # 54: 10
+    # 49: 15
+    # 48: 21
+    # 47: 22
+    # 46: 23.15 (??? lol)
+    # 44: 23.1
+    # 43: 25
+    # 40: 30
+    # 38: 50
+    # 36: 60
+    # 35: 80
+    # 34: 100
+    # 33: 120
+    # 32: 150
+    # 30: 194
+    # 29: 240
+    # 28: 280
+    # 27: 350
+    # 26: 360
+    # 25: 370
     detective = GreedySearcher(empty_adjacency_matrix,
-                               regularization_constant=0,
+                               regularization_constant=4.5,
                                n_tabu_walks=5,
                                max_tabu_list_size=10,
                                tabu_walk_length=5,
@@ -56,7 +65,7 @@ def main():
     clock.stop("hill climb")
     clock.total("hill climb")
     print_report(top_adjacency_matrix, dataset)
-    graphs.save(top_adjacency_matrix, name=f"top_{graphs.n_edges(top_adjacency_matrix)}")
+    graphs.save(top_adjacency_matrix, name=f"top_{graphs.n_params(top_adjacency_matrix)}")
 
     # log_likelihood = cross_validate_detective(detective, dataset)
     # print(f"log likelihood: {log_likelihood}")

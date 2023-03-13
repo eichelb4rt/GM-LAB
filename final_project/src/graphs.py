@@ -2,12 +2,16 @@ import numpy as np
 import numpy.typing as npt
 
 
-def n_nodes(adjacency_matrix: npt.NDArray[np.bool_]) -> bool:
+def n_nodes(adjacency_matrix: npt.NDArray[np.bool_]) -> int:
     return adjacency_matrix.shape[0]
 
 
-def n_edges(adjacency_matrix: npt.NDArray[np.bool_]) -> bool:
+def n_edges(adjacency_matrix: npt.NDArray[np.bool_]) -> int:
     return np.count_nonzero(adjacency_matrix)
+
+
+def n_params(adjacency_matrix: npt.NDArray[np.bool_]) -> int:
+    return 2 * n_nodes(adjacency_matrix) + n_edges(adjacency_matrix)
 
 
 def neighbours_in(node: int, adjacency_matrix: npt.NDArray[np.bool_]) -> list[int]:
