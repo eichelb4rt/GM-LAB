@@ -1,0 +1,21 @@
+# ignore everything but:
+*
+
+# this .gitignore
+!.gitignore
+
+# source file
+!*.tex
+
+# library
+!*.bib
+
+# build file
+!build.sh
+
+# pdf
+!*.pdf
+
+# graphics
+!graphics/
+!graphics/**
