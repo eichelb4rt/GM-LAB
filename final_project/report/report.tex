@@ -99,17 +99,17 @@ For the score function $p(G | D) \propto p(D | G) \cdot p(G)$, i used the approx
 	\hat{\theta} & := \arg\max\limits_{\theta} p(D | G, \theta)
 \end{align*}
 and the prior
-$$p(G) \propto \frac{1}{|E|^\lambda}.$$
+$$p(G) \propto \frac{1}{|E|^\lambda}$$
 With this, the objective function can be decomposed into the sum of independent node scores and a regularization term.
 \begin{align*}
-	\arg\max\limits_G p(G | D) & = \arg\max\limits_G \log p(D | G) + \log p(G)                          \\
-	                           & \approx \arg\max\limits_G p(D | G, \hat{\theta}) - \lambda \abs{E_G}   \\
+	\arg\max\limits_G p(G | D) & = \arg\max\limits_G \log p(D | G) + \log p(G)                             \\
+	                           & \approx \arg\max\limits_G \log p(D | G, \hat{\theta}) - \lambda \abs{E_G} \\
 	                           & = \arg\max\limits_G \sum\limits_{i \in [n]} S_i(G) - \lambda \abs{E_G}
 \end{align*}
 where
 $$S_i(G) := -\abs{D} \cdot \log \hat{\sigma_i} - \frac{1}{2} \sum\limits_{x \in D} \left(\frac{x_i - (\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*)}{\hat{\sigma_i}}\right)^2$$
-and $\hat{\beta_i}, \hat{\beta_i}^*, \hat{\sigma_i}$ are the respective ML estimates for
-$$p(x_i | x_{\pa(i)}) \sim \mathcal{N}(\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*, \sigma_i^2).$$
+and $\hat{\theta} := \left(\hat{\beta_i}, \hat{\beta_i}^*, \hat{\sigma_i}\right)_{i \in [n]}$ are the respective ML estimates for
+$$p(x_i | x_{\pa(i)}) \sim \mathcal{N}(\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*, \sigma_i^2)$$
 A derivation of this can be found in \autoref{sec:calc:score_function}.
 
 \subsection{Implications for Hill Climbing}
@@ -120,7 +120,9 @@ That means if we construct a graph $G'$, where $G'$ was made by applying an elem
 	\iff\sum\limits_{i \in [n]} S_i(G') - S_i(G)                                         & > \lambda (\abs{E_{G'}} - \abs{E_{G}})                                  \\
 	\iff\underbrace{\sum\limits_{i \in \set{u,v}} S_i(G') - S_i(G)}_{:= \Delta_S(G', G)} & > \lambda \underbrace{(\abs{E_{G'}} - \abs{E_{G}})}_{:= \Delta_E(G',G)}
 \end{align*}
-where
+Where the second equivalence holds because $S_i(\cdot)$ only depends on node $i$ and its parents.
+Therefore $S_i(G') = S_i(G)$ for $i \notin \set{u, v}$.
+Note that $\Delta_E(G',G)$ only depends on the type of change applied to $G$:
 $$
 	\Delta_E(G',G) = \begin{cases}
 		1  & \text{addition} \\
@@ -128,7 +130,7 @@ $$
 		-1 & \text{deletion} \\
 	\end{cases}
 $$
-Note that $\Delta_S(G', G)$ measures the improvement of node scores when the change is applied to $G$.
+$\Delta_S(G', G)$ measures the improvement of node scores when the change is applied to $G$.
 
 Similarly, two alterations $G_1$ and $G_2$ of $G$ can be compared:
 \begin{align*}
@@ -179,17 +181,15 @@ Some conclusion.
 \subsection{Score Function}
 \label{sec:calc:score_function}
 Here we derive
-$$\max\limits_G p(D | G, \hat{\theta}) = \max\limits_G \sum\limits_{i \in [n]} S_i(G)$$
-\begin{gather*}
-	\max\limits_G p(D | G, \hat{\theta})\\
-	= \max\limits_G \prod\limits_{x \in D} p(x | G, \hat{\theta})\\
-	= \max\limits_G \prod\limits_{x \in D} \prod\limits_{i \in [n]} p(x_i | x_{\pa(i)}, \hat{\beta_i}, \hat{\beta_i}^*, \hat{\sigma_i})\\
-	= \max\limits_G \sum\limits_{x \in D} \sum\limits_{i \in [n]} \log p(x_i | x_{\pa(i)}, \hat{\beta_i}, \hat{\beta_i}^*, \hat{\sigma_i})\\
-	= \max\limits_G \sum\limits_{x \in D} \sum\limits_{i \in [n]} \log \left[\frac{1}{\sqrt{2\pi} \sigma_i} \exp \left(-\frac{1}{2}\left(\frac{x_i - (\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*)}{\sigma_i}\right)^2\right)\right]\\
-	= \max\limits_G \sum\limits_{x \in D} \sum\limits_{i \in [n]} \left[-\frac{1}{2} \left(\frac{x_i - (\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*)}{\sigma_i}\right)^2 - \log \hat{\sigma_i} - \frac{1}{2} \log 2\pi\right]\\
-	= \max\limits_G \sum\limits_{i \in [n]} \underbrace{\left[-\abs{D} \cdot \log \hat{\sigma_i} - \frac{1}{2} \sum\limits_{x \in D} \left(\frac{x_i - (\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*)}{\hat{\sigma_i}}\right)^2\right]}_{= S_i(G)}
-	\qed
-\end{gather*}
+$$\max\limits_G \log p(D | G, \hat{\theta}) = \max\limits_G \sum\limits_{i \in [n]} S_i(G)$$
+\begin{flalign*}
+	&\max\limits_G \log p(D | G, \hat{\theta})= \max\limits_G \log \left[\prod\limits_{x \in D} p(x | G, \hat{\theta})\right]&&\\
+	&= \max\limits_G \log \left[\prod\limits_{x \in D} \prod\limits_{i \in [n]} p(x_i | x_{\pa(i)}, \hat{\beta_i}, \hat{\beta_i}^*, \hat{\sigma_i})\right]&&\\
+	&= \max\limits_G \sum\limits_{x \in D} \sum\limits_{i \in [n]} \log p(x_i | x_{\pa(i)}, \hat{\beta_i}, \hat{\beta_i}^*, \hat{\sigma_i})&&\\
+	&= \max\limits_G \sum\limits_{x \in D} \sum\limits_{i \in [n]} \log \left[\frac{1}{\sqrt{2\pi} \sigma_i} \exp \left(-\frac{1}{2}\left(\frac{x_i - (\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*)}{\sigma_i}\right)^2\right)\right]&&\\
+	&= \max\limits_G \sum\limits_{x \in D} \sum\limits_{i \in [n]} \left[-\frac{1}{2} \left(\frac{x_i - (\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*)}{\sigma_i}\right)^2 - \log \hat{\sigma_i} - \frac{1}{2} \log 2\pi\right]&&\\
+	&= \max\limits_G \sum\limits_{i \in [n]} \underbrace{\left[-\abs{D} \cdot \log \hat{\sigma_i} - \frac{1}{2} \sum\limits_{x \in D} \left(\frac{x_i - (\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*)}{\hat{\sigma_i}}\right)^2\right]}_{= S_i(G)}\qed&&
+\end{flalign*}
 Note that $\hat{\theta}$ ($\hat{\beta_i}, \hat{\sigma_i}$) depends on $G$ ($\pa(i)$).
 
 \subsection{Graph Comparison}
