@@ -87,10 +87,44 @@
 
 \section{Introduction}
 Some introduction. bla bla
+% talk about:
+% what is the data?
+% what are the attributes?
+% maybe some visualization? how does it look?
+% what is the task?
+% what is it used for? (?)
+% what is the problem? (Parameter learning requires the structure to be given. But in pactice, this is not the case. It's rather that the structure is very interesting and needs to be learned. The parameters are then only secondary when it comes to understanding.)
+% parameter learning is rather simple because we were constrained to the model of GBN. This means that all parameters have a simple closed-form ML-estimate given the structure.
+
 \FloatBarrier
 
 
 \section{Methods}
+% talk about what greedy search algorithm was used (in the overview paper (citation?) they said that it's rather common and well performing, so i chose the greedy algorithm (special case hill climbing with tabu walks and restarts))
+% present the hill climbing algorithm (attention! details needed how tabu walks and random restarts are combined! this is not mentioned in the overview)
+% -> maybe reasoning needed as to why tabu walks and the random restarts were combined in this way.
+
+
+\subsection{Hill Climbing}
+% talk about how you climb the hill (how do you find all of the possible changes at any given point? (you need to check for cycles etc. - how do you do that efficiently (cite the guy)))
+% how do you efficiently evaluate the change? (you never copy, the adjacency matrix, but apply the change, see what happens, and revert it)
+% how do you evaluate if one change is better than another efficiently? (you never re-calculate the whole objective function, because the changes can be evaluated locally)
+% ^ this is further discussed in [Implications for Hill Climbing]
+
+
+\subsection{Tabu Walks}
+% talk about how you keep the tabu list efficient
+% you hash the adjacency matrix to compressed byte arrays instead of saving 2-dimensional bitstrings and put em in the queue
+% then at tabu walk start you put them all into set, this allows you to efficiently compute all changes that are not in the tabu lists, because lookups in the hash set are efficient. (and the number of changes you have to check is huge, so this should save a lot of time)
+% maybe say that it uses the same algorithm for finding the best change out of a set of changes as the hill climbing algorithm, just that the set of changes passed is now different (non-tabu changes instead of all possible changes)
+
+
+\subsection{Random Restarts}
+% sometimes we just do random changes, maybe talk about your choice of uniform distribution among all possible changes (so we don't have a bias)
+% maybe talk about how a bias might be introduced to prioritize additions and deletions, or maybe prioritize flips, idk might be interesting.
+% priors for the random walk could be studied in future works. (maybe find out if someone already did that? cite them if someone exists -> like here, they tried but i won't get into it. if you wanna know more about it, check em out)
+
+
 \subsection{Choice of optimized score}
 % TODO: rewrite this? this is just for remembering what i did and why
 For the score function $p(G | D) \propto p(D | G) \cdot p(G)$, i used the approximation
@@ -112,7 +146,7 @@ and $\hat{\theta} := \left(\hat{\beta_i}, \hat{\beta_i}^*, \hat{\sigma_i}\right)
 $$p(x_i | x_{\pa(i)}) \sim \mathcal{N}(\hat{\beta_i}^\T x_{\pa(i)} + \hat{\beta_i}^*, \sigma_i^2)$$
 A derivation of this can be found in \autoref{sec:calc:score_function}.
 
-\subsection{Implications for Hill Climbing}
+\subsubsection{Implications for Hill Climbing}
 Elementary changes (addition, substraction, flip of an edge) only influence local distributions.
 That means if we construct a graph $G'$, where $G'$ was made by applying an elementary change to an edge $(u, v)$ in $G$, the comparison $p(G' | D) > p(G | D)$ can be evaluated locally:
 \begin{align*}
@@ -140,15 +174,30 @@ Similarly, two alterations $G_1$ and $G_2$ of $G$ can be compared:
 A derivation of this can be found in \autoref{sec:calc:comparison}.
 
 The interpretation of this is that a change has to bring an improvement of at least $\lambda$ per edge in order to improve the whole objective function.
+But more importantly, this allow a very efficient comparison of two different changes, which we need to efficiently find the best possible change for [Hill Climbing] and [Tabu Walks]
+
+
+\subsection{Parameter Fine-Tuning}
+% how did you fine tune the parameters? what are we looking for? (for the tabu walk and the random restarts to actually climb out of local optima and result in better optima)
+% include your funny little plots here
 
 
 \section{Results}
+\subsection{Generated Structures}
+% refer to some generated graphs for different lambdas that are visualized in the appendix
+% idk look at the graphs and maybe there's something to note?
+% yes there def is: how sparse is a graph for a given lambda? -> include the plot
+
+
 \subsection{Performance}
+% for different lambdas, sizes of tabu walks, sizes of random walks -> include specs in appendix!
 Some performance analysis
 
 
 \subsection{Likelihood}
 \label{sec:results:likelihood}
+% you gotta run this over night or something. Just specify a number of lambdas and do a double-cross validation data = (train_structure, test_structure) = (train_structure, (train_params, test_params))
+% -> maybe only 3 rotations in the structure split
 Cross validation time.
 \begin{table}[htbp]
 	\caption{Error Score Comparison}
@@ -167,14 +216,24 @@ Cross validation time.
 \FloatBarrier
 
 
+\subsubsection{Submission Scores}
+% talk about how your learned structures fucking rule on the submission website we got, especially on the sparse side.
+% (maybe introduce the submission website first tho - we could anonymously submit our learned structures, and they were evaluated on an secret test dataset)
+
+
 \section{Conclusion}
 Some conclusion.
+% i made a pretty efficient greedy search algorithm with tabu walks and random restarts that out-performs the other submitting contestants on the sparse side and is on-par on the not-so-sparse side
+% (why is it efficient - because of avoiding copying adjacency matrices and efficient local comparisons of the difference in the objective function that a change brings)
+% performance depends on (probably lambda, number of tabu matrices stored, length of tabu walk)
+% future work could speed this up by implementing everything in faster programming languages like C++, and maybe try parallelizing the search for the best possible change.
+
 
 \typeout{}
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{literature}
 
-% TODO: derive S_i(G) in the appendix properly
+
 \clearpage
 \appendix
 \section{Calculations}
@@ -212,5 +271,3 @@ Therefore
 
 \end{document}
 \endinput
-%%
-%% End of file `sample-sigconf.tex'.
