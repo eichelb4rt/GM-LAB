@@ -59,34 +59,31 @@
 \def\ghostline{\hfill\vspace*{-5mm}}
 
 \begin{document}
-
-%%
-%% The "title" command has an optional parameter,
-%% allowing the author to define a "short title" to be used in page headers.
-% Fast Entity Resolution With Mock Labels and Sorted Integer Sets
 \title[Project Report]{Project Report\\\large Graphical Models LAB}
-
-%%
-%% The "author" command and its associated commands are used to define
-%% the authors and their affiliations.
-
 \author{Maurice Wenig}
 \affiliation{%
 	\institution{Friedrich Schiller University Jena}
 	\country{Germany}}
 \email{maurice.wenig@uni-jena.de}
 
-
-%%
-%% This command processes the author and affiliation and title
-%% information and builds the first part of the formatted document.
 \maketitle
-
 % \let\thefootnote\relax\footnotetext{AEPRO 2022, March 1, Jena, Germany. Copyright \copyright 2022 for this paper by its authors. Use permitted under Creative Commons License Attribution 4.0 International (CC BY 4.0).}
 
 
 \section{Introduction}
-Some introduction. bla bla
+Learning graphical models is a big aspect of machine learning.
+But for the parameters of the model to be learned, it is often assumed that the structure is already given, which includes information about dependencies and independencies between features.
+However in practice, that is not the case.
+Sometimes even the opposite might be true, that the structure between features itself is much more relevant than the actual amplitude of their interactions, with the hope of being able to interpret the interactions (e.g. in a causal context).
+This is also an inspiration for our assignment, where our main task is coming up with a search strategy to find a sparse Bayesian Network that fits the data we were given.
+
+For our assignment, we focused on Gaussian Bayesian Networks (GBN).
+A GBN is a Bayesian Network where the conditional distributions of a feature given their parents is a Gaussian.
+Another constraint to the GBN is that the mean paramater of the Gaussian, that is the conditional distribution, can only depend linearly on the values of the feature's parents in the Network Graph.
+So with $n$ as the total number of features, the problem of learning the distribution $p(x_i | x_{\pa(i)})$ for a feature $i \in [n]$, its value $x_i \in \R$, and the value of their parents $x_{\pa(i)} \in \R^{n_i}$ is equivalent to learning $\hat{\beta_i}^* \in \R, \hat{\beta_i} \in \R^{n_i}, \hat{\sigma_i} \in \R$ such that $p(x_i | x_{\pa(i)}) \sim \mathcal{N}(\hat{\beta_i}^* + \hat{\beta_i}^\T x_{\pa(i)}, \hat{\sigma_i}^2)$.
+Now for these parameters, the ML-estimates have a simple closed-form solution (it is just linear regression), so finding the best parameters for any given structure is simple and efficient.
+
+We were given (dataset stuff).
 % talk about:
 % what is the data?
 % what are the attributes?
