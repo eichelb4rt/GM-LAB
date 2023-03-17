@@ -52,7 +52,7 @@
 \def\T{\top}
 \def\pa{\text{pa}}
 \def\ndy{
-    \textcolor{red} {\hfill not done yet!}
+    % \textcolor{red} {\hfill not done yet!}
     \reversemarginpar
     \marginpar{\raggedleft\textcolor{red}{\rule{2mm}{2mm}}}
 }
@@ -83,7 +83,11 @@ Another constraint to the GBN is that the mean paramater of the Gaussian, that i
 So with $n$ as the total number of features, the problem of learning the distribution $p(x_i | x_{\pa(i)})$ for a feature $i \in [n]$, its value $x_i \in \R$, and the value of their parents $x_{\pa(i)} \in \R^{n_i}$ is equivalent to learning $\hat{\beta_i}^* \in \R, \hat{\beta_i} \in \R^{n_i}, \hat{\sigma_i} \in \R$ such that $p(x_i | x_{\pa(i)}) \sim \mathcal{N}(\hat{\beta_i}^* + \hat{\beta_i}^\T x_{\pa(i)}, \hat{\sigma_i}^2)$.
 Now for these parameters, the ML-estimates have a simple closed-form solution (it is just linear regression), so finding the best parameters for any given structure is simple and efficient.
 
-We were given (dataset stuff).
+% https://doi.org/10.1016/j.dss.2009.05.016
+The dataset we were given spans different attributes of Portuguese "Vinho Verde" wine, which was originally used in [cite\ndy].
+It consists of twelve features: eleven continuous physicochemical attributes and one discrete sensory attribute (quality).
+Here, i will treat quality as a continuous feature.
+% TODO: maybe visualize the dataset a bit?
 % talk about:
 % what is the data?
 % what are the attributes?
@@ -122,7 +126,7 @@ We were given (dataset stuff).
 % priors for the random walk could be studied in future works. (maybe find out if someone already did that? cite them if someone exists -> like here, they tried but i won't get into it. if you wanna know more about it, check em out)
 
 
-\subsection{Choice of optimized score}
+\subsection{Choice of Optimized Score}
 % TODO: rewrite this? this is just for remembering what i did and why
 For the score function $p(G | D) \propto p(D | G) \cdot p(G)$, i used the approximation
 \begin{align*}
