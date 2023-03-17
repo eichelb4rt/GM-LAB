@@ -173,7 +173,7 @@ It is illustrated in \autoref{func:methods:climb_hill}.
 \end{function}
 
 In order to avoid copying the adjacency matrix every time a change is applied, the adjacency matrix is changed in-place, and then the score is evaluated.
-This is also a key point for the efficiency of generating all possible changes, which is illustrated in \autoref{func:methods:all_changes}.
+This is also improves the efficiency of generating all possible changes, which is illustrated in \autoref{func:methods:all_changes}.
 The evaluation of the score can be sped up by only evaluating local changes of the changed nodes.
 This is further discussed in \autoref{sec:methods:score:implications}.
 
@@ -196,22 +196,24 @@ This is further discussed in \autoref{sec:methods:score:implications}.
 		\tcp{deletions do not add cycles}
 		$C \gets C \cup \set{c}$\;
 	}
+	$G^t \gets$ TransitiveClosure($G$)\;
 	\ForEach{$u,v \in V_G, u \neq v$}{
-		$c \gets \text{ADDITION}(u, v)$\;
-		\uIf{$(u,v) \notin E_G$}{
-			apply the change $c$ to $G$\;
-			\uIf{$G$ does not have a cycle}{
-				$C \gets C \cup \set{c}$\;
-			}
-			undo the change $c$ in $G$\;
+		\uIf{$(u,v) \notin E_G$ and $(v,u) \notin E_{G^t}$}{
+			$c \gets \text{ADDITION}(u, v)$\;
+			$C \gets C \cup \set{c}$\;
 		}
 	}
 	\Return{$C$}
 \end{function}
 
 Another key point to the efficiency of \autoref{func:methods:all_changes} is the efficiency of the cyclicity check.
-This can be done in $\O(V_G^2)$ with Kosaraju-Sharir's algorithm [cite\ndy].
-THIS CAN BE DONE FASTER\ndy
+For additions, this can be done by computing the transitive closure $G^t$ of $G$, which can be done in $\O(\abs{V_G}^3)$.
+Then if $(v, u) \notin E_{G^t}$, the addition of $(u,v)$ will not create a new cycle.
+For flips, i didn't find a more efficient way than completely checking the resulting graph for cycles.
+This can be done in $\O(\abs{V_G} + \abs{E_G})$ with Kosaraju-Sharir's algorithm [cite\ndy].
+But because i used ajdacency matrices instead of adjacency lists, Kosaraju-Sharir's algorithm takes $\O(\abs{V_G}^2)$.
+Therefore, the resulting time for generating all flips is $\O(\abs{E_G} \cdot \abs{V_G}^2)$.
+It follows that the overall time for generating all possible changes is $\O((\abs{V_G} + \abs{E_G}) \cdot \abs{V_G}^2)$.
 
 \FloatBarrier
 
