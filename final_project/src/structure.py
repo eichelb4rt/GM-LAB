@@ -114,12 +114,16 @@ class GreedySearcher:
                     self.score_history.append(self.score())
 
     def tabu_walk(self, dataset: npt.NDArray[np.float64]):
-        """Apply the best possible change that hasn't been visited yet. Doesn't matter if it improves the objective function or not."""
+        """Apply the best possible change that hasn't been visited yet. Doesn't matter if it improves the objective function or not. If the result is better than the original, use that."""
 
+
+        original_adjacency_matrix = self.top_adjacency_matrix.copy()
+        original_node_scores = self.node_scores.copy()
         # log stuff
         if self.logging_enabled:
             self.method_starts.append(("tabu_walk", len(self.score_history)))
         # go for a walk
+        total_improvement = 0
         for i in range(self.tabu_walk_length):
             # set for fast acces (we don't want to go through the list every time we check if an adjacency matrix is tabu)
             tabu_hashes: set[bytes] = set(self.tabu_list.queue)
@@ -132,7 +136,7 @@ class GreedySearcher:
             else:
                 non_tabu_changes = [(change_type, changed_edge) for change_type, changed_edge in all_possible_changes if self.resulting_hash(changed_edge, change_type) not in tabu_hashes]
             # find the top change among them
-            top_improvement, top_changed_edge, top_change_type, new_node_scores = self.find_top_change(non_tabu_changes, dataset)
+            top_node_score_improvement, top_changed_edge, top_change_type, new_node_scores = self.find_top_change(non_tabu_changes, dataset)
             # we looked through all non-tabu changes and determined the best, now apply it
             graphs.apply_change(self.top_adjacency_matrix, top_changed_edge, top_change_type)
             # update node scores
@@ -140,11 +144,23 @@ class GreedySearcher:
             new_from_score, new_to_score = new_node_scores
             self.node_scores[from_node] = new_from_score
             self.node_scores[to_node] = new_to_score
+            # update the total improvement of the objective function
+            delta_e = graphs.edge_difference(top_change_type)
+            total_improvement += top_node_score_improvement - self.regularization_constant * delta_e
             # one more adjacency matrix to the tabu list :)
             self.update_tabu_list()
             # maybe log the current score
             if self.logging_enabled:
                 self.score_history.append(self.score())
+            # stop the tabu walk if we got better than the original
+            if total_improvement > 0:
+                return
+        # if we're here, it means that we didn't get better than the original -> reset it
+        self.top_adjacency_matrix = original_adjacency_matrix
+        self.node_scores = original_node_scores
+        # maybe log when the reset
+        if self.logging_enabled:
+            self.score_history.append(self.score())
 
     def random_restart(self, dataset: npt.NDArray[np.float64]):
         """Just apply some random changes. Doesn't matter if it improves the objective function or not. Picks from a uniform distribution of all possible changes."""
@@ -178,7 +194,7 @@ class GreedySearcher:
             - the changed node scores of the nodes of the edge"""
 
         # needed to figure out the best change
-        top_improvement = -np.infty
+        top_node_score_improvement = -np.infty
         top_edge_difference = 0
         # keep track of what change was the best
         top_changed_edge: graphs.Edge
@@ -192,13 +208,13 @@ class GreedySearcher:
             improvement = (new_from_score + new_to_score) - (self.node_scores[from_node] + self.node_scores[to_node])
             current_edge_difference = graphs.edge_difference(change_type)
             # if we get a better improvement (that is worth the edges), update
-            if improvement - top_improvement > self.regularization_constant * (current_edge_difference - top_edge_difference):
-                top_improvement = improvement
+            if improvement - top_node_score_improvement > self.regularization_constant * (current_edge_difference - top_edge_difference):
+                top_node_score_improvement = improvement
                 top_changed_edge = changed_edge
                 top_change_type = change_type
                 new_node_scores = (new_from_score, new_to_score)
                 top_edge_difference = current_edge_difference
-        return top_improvement, top_changed_edge, top_change_type, new_node_scores
+        return top_node_score_improvement, top_changed_edge, top_change_type, new_node_scores
 
     def changed_scores(self, changed_edge: graphs.Edge, change_type: graphs.ChangeType, dataset: npt.NDArray[np.float64]) -> tuple[float, float]:
         """Returns the new scores of the affected nodes if the change was applied."""

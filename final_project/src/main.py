@@ -27,17 +27,17 @@ def main():
 
     #                            logging_enabled=True)
     # NOTE: small 2
-    # detective = GreedySearcher(empty_adjacency_matrix,
-    #                            regularization_constant=25,
+    detective = GreedySearcher(empty_adjacency_matrix,
+                               regularization_constant=25,
 
-    #                            n_tabu_walks=3,
-    #                            max_tabu_list_size=100,
-    #                            tabu_walk_length=20,
+                               n_tabu_walks=3,
+                               max_tabu_list_size=100,
+                               tabu_walk_length=20,
 
-    #                            n_random_restarts=5,
-    #                            random_walk_length=5,
+                               n_random_restarts=5,
+                               random_walk_length=5,
 
-    #                            logging_enabled=True)
+                               logging_enabled=True)
     # NOTE: medium number of parameters (54)
     # detective = GreedySearcher(empty_adjacency_matrix,
     #                            regularization_constant=8,
@@ -75,17 +75,17 @@ def main():
 
     #                            logging_enabled=True)
     # NOTE: big 2
-    detective = GreedySearcher(empty_adjacency_matrix,
-                               regularization_constant=3,
+    # detective = GreedySearcher(empty_adjacency_matrix,
+    #                            regularization_constant=3,
 
-                               n_tabu_walks=3,
-                               max_tabu_list_size=2000,
-                               tabu_walk_length=150,
+    #                            n_tabu_walks=3,
+    #                            max_tabu_list_size=2000,
+    #                            tabu_walk_length=150,
 
-                               n_random_restarts=5,
-                               random_walk_length=10,
+    #                            n_random_restarts=5,
+    #                            random_walk_length=10,
 
-                               logging_enabled=True)
+    #                            logging_enabled=True)
     clock.start("hill climb")
     print("climbing...")
     top_adjacency_matrix = detective.fit(dataset)
@@ -93,7 +93,7 @@ def main():
     clock.total("hill climb")
     print_report(top_adjacency_matrix, dataset)
     graphs.save(top_adjacency_matrix, name=f"top_{graphs.n_params(top_adjacency_matrix)}")
-    np.save("logs/big_2a.npy", np.array((detective.score_history, detective.method_starts), dtype=object))
+    np.save("logs/small_2t_2.npy", np.array((detective.score_history, detective.method_starts), dtype=object))
 
     # NOTE: uncomment to cross validate stuff
     # log_likelihood = cross_validate_detective(detective, dataset)

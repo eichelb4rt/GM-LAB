@@ -59,12 +59,11 @@ def visualize_score_history(score_history: list[float], method_starts: list[tupl
 
 def visualize_tabu_walk(score_history: list[float], method_starts: list[tuple[str, int]], out_file: str = "plots/tabu_walk.png"):
     first_hill_climb_length = method_starts[1][1]
-    scores_after_climb = score_history[first_hill_climb_length:]
 
     time_intervals = [(method_name, method_start, method_starts[i + 1][1] - 1 if i + 1 < len(method_starts) else len(score_history) - 1) for i, (method_name, method_start) in enumerate(method_starts)]
     all_tabu_walk_values = [score for method_name, method_start, method_end in time_intervals if method_name == "tabu_walk" for score in score_history[method_start:method_end]]
     plt.figure(figsize=FIG_SIZE)
-    plt.plot(range(first_hill_climb_length, len(score_history)), scores_after_climb)
+    plt.plot(range(first_hill_climb_length - 1, len(score_history)), score_history[first_hill_climb_length - 1:])
     bottom = min(all_tabu_walk_values)
     top = max(all_tabu_walk_values)
     extra_space = 0.25 * (top - bottom)
