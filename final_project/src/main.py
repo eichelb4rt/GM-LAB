@@ -36,6 +36,30 @@ def main():
                                random_walk_length=5,
 
                                logging_enabled=True)
+    # NOTE: small example where the random walks are too long
+    # detective = GreedySearcher(empty_adjacency_matrix,
+    #                            regularization_constant=25,
+
+    #                            n_tabu_walks=3,
+    #                            max_tabu_list_size=100,
+    #                            tabu_walk_length=20,
+
+    #                            n_random_restarts=5,
+    #                            random_walk_length=50,
+
+    #                            logging_enabled=True)
+    # NOTE: small example where the tabu walks are too short
+    # detective = GreedySearcher(empty_adjacency_matrix,
+    #                            regularization_constant=25,
+
+    #                            n_tabu_walks=3,
+    #                            max_tabu_list_size=10,
+    #                            tabu_walk_length=3,
+
+    #                            n_random_restarts=5,
+    #                            random_walk_length=5,
+
+    #                            logging_enabled=True)
     # NOTE: medium number of parameters (54)
     # detective = GreedySearcher(empty_adjacency_matrix,
     #                            regularization_constant=8,
@@ -91,7 +115,7 @@ def main():
     clock.total("hill climb")
     print_report(top_adjacency_matrix, dataset)
     graphs.save(top_adjacency_matrix, name=f"top_{graphs.n_params(top_adjacency_matrix)}")
-    np.save("logs/small_2t_2.npy", np.array((detective.score_history, detective.method_starts), dtype=object))
+    np.save("logs/small_example.npy", np.array((detective.score_history, detective.method_starts), dtype=object))
 
     # NOTE: uncomment to cross validate stuff
     # log_likelihood = cross_validate_detective(detective, dataset)
