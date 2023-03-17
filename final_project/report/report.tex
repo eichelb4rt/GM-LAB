@@ -152,22 +152,29 @@ Then we do a random restart and do it all again. The random restart procedure is
 % how do you efficiently evaluate the change? (you never copy, the adjacency matrix, but apply the change, see what happens, and revert it)
 % how do you evaluate if one change is better than another efficiently? (you never re-calculate the whole objective function, because the changes can be evaluated locally)
 % ^ this is further discussed in [Implications for Hill Climbing]
-The hill climbing algorithm just applies every possible change that improves the objective function.
-It is illustrated in \autoref{func:methods:climb_hill}.
+In every iteration, the hill climbing algorithm computes the best possible elementary change among all changes.
+If this change improves the objective function, it is applied.
+This algorithm is illustrated in \autoref{func:methods:climb_hill}.
 
 \begin{function}
 	\caption{ClimbHill()}
 	\label{func:methods:climb_hill}
 	\Input{dataset $D$, current DAG $G$}
 	\While{$S_{max}$ increases}{
+		$S_G \gets Score(G, D)$\;
+		$c_{max} \gets$ IMPOSSIBLY\_BAD\_CHANGE\;
 		$C \gets AllChanges(G)$\;
 		\ForEach{$c \in C$}{
 			apply the change $c$ to $G$\;
-			\eIf{$Score(G, D) > S_{max}$}{
-				$S_{max} \gets Score(G', D)$\;
-			}{
-				undo the change $c$ in $G$\;
+			$S_c \gets Score(G, D)$\;
+			undo the change $c$ in $G$\;
+			\uIf{$S_c > S_{max}$}{
+				$S_{max} \gets S_c$\;
+				$c_{max} \gets c$\;
 			}
+		}
+		\uIf{$S_c > S_G$}{
+			apply the change $c_{max}$ to $G$\;
 		}
 	}
 \end{function}
@@ -271,7 +278,7 @@ That means if we construct a graph $G'$, where $G'$ was made by applying an elem
 	\iff\sum\limits_{i \in [n]} S_i(G') - S_i(G)                                         & > \lambda (\abs{E_{G'}} - \abs{E_{G}})                                  \\
 	\iff\underbrace{\sum\limits_{i \in \set{u,v}} S_i(G') - S_i(G)}_{:= \Delta_S(G', G)} & > \lambda \underbrace{(\abs{E_{G'}} - \abs{E_{G}})}_{:= \Delta_E(G',G)}
 \end{align*}
-Where the second equivalence holds because $S_i(\cdot)$ only depends on node $i$ and its parents.
+Where the second equivalence holds because $S_i(G)$ only depends on node $i$ and its parents.
 Therefore $S_i(G') = S_i(G)$ for $i \notin \set{u, v}$.
 Note that $\Delta_E(G',G)$ only depends on the type of change applied to $G$:
 $$
