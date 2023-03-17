@@ -71,17 +71,17 @@ class GreedySearcher:
 
         # first hill climb
         self.hill_climb(dataset)
-        # then hill climb, tabu, and restart a lot
-        for _ in range(self.n_random_restarts):
-            for _ in range(self.n_tabu_walks):
-                self.tabu_walk(dataset)
-                self.hill_climb(dataset)
-            self.random_restart(dataset)
-            self.hill_climb(dataset)
-        # then tabu a bit more
+        # do some tabu walks first
         for _ in range(self.n_tabu_walks):
             self.tabu_walk(dataset)
             self.hill_climb(dataset)
+        # then hill climb, tabu, and restart a lot
+        for _ in range(self.n_random_restarts):
+            self.random_restart(dataset)
+            self.hill_climb(dataset)
+            for _ in range(self.n_tabu_walks):
+                self.tabu_walk(dataset)
+                self.hill_climb(dataset)
         return self.top_adjacency_matrix
 
     def hill_climb(self, dataset: npt.NDArray[np.float64]):

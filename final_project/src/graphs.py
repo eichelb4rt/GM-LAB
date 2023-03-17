@@ -83,6 +83,7 @@ def possible_additions(adjacency_matrix: npt.NDArray[np.bool_]) -> list[Edge]:
     """List of edges that could be added without creating a cycle."""
 
     n_nodes_ = n_nodes(adjacency_matrix)
+    reach = transitive_closure(adjacency_matrix)
     additions: list[Edge] = []
     for from_node in range(n_nodes_):
         for to_node in range(n_nodes_):
@@ -92,13 +93,10 @@ def possible_additions(adjacency_matrix: npt.NDArray[np.bool_]) -> list[Edge]:
             # don't add edges that already exist
             if adjacency_matrix[from_node, to_node]:
                 continue
-            # change the adjacency matrix temporarily
             edge = (from_node, to_node)
-            apply_change(adjacency_matrix, edge, ChangeType.Addition)
-            if not has_cycle(adjacency_matrix):
+            # if we j -> i is not reachable, then i -> j will not create a cycle
+            if not reach[to_node, from_node]:
                 additions.append(edge)
-            # revert the temporal change
-            revert_change(adjacency_matrix, edge, ChangeType.Addition)
     return additions
 
 
@@ -146,6 +144,19 @@ def save(adjacency_matrix: npt.NDArray[np.bool_], name: str = "graph"):
 
     out_file = f"graphs/{name}.npy"
     np.save(out_file, adjacency_matrix)
+
+
+def transitive_closure(adjacency_matrix: npt.NDArray[np.bool_]) -> npt.NDArray[np.bool_]:
+    """Generates the transitive closure of the graph."""
+
+    reach = adjacency_matrix.copy()
+    n = n_nodes(adjacency_matrix)
+    # kind of Floyd-Warshall, but for reach
+    for k in range(n):
+        for i in range(n):
+            for j in range(n):
+                reach[i, j] |= reach[i, k] and reach[k, j]
+    return reach
 
 
 def has_cycle(adjacency_matrix: npt.NDArray[np.bool_]) -> bool:
