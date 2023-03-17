@@ -1,9 +1,10 @@
-\documentclass[sigconf, fleqn]{acmart}
+\documentclass[sigconf, fleqn, prologue, dvipsnames]{acmart}
 \usepackage{booktabs}
 \usepackage{placeins}
-\usepackage{algorithmicx}
-\usepackage[noend]{algpseudocode}
-\usepackage{algorithm}
+% \usepackage{algorithmicx}
+% \usepackage[noend]{algpseudocode}
+% \usepackage{algorithm}
+\usepackage{algorithm2e}
 \usepackage{subcaption}
 
 
@@ -44,6 +45,11 @@
 \newcommand{\norm}[1]{\left\| #1 \right\|}
 \newcommand{\skal}[2]{\left\langle #1 | #2 \right\rangle}
 \newcommand{\numberthis}{\addtocounter{equation}{1}\tag{\theequation}}
+\newcommand{\maybe}[1]{%
+	\textcolor{Goldenrod}{#1?}
+    \reversemarginpar
+    \marginpar{\raggedleft\textcolor{Goldenrod}{\rule{2mm}{2mm}}}
+}
 %----- defs
 \def\notiff{\mathrel{{\ooalign{\hidewidth$\not\phantom{"}$\hidewidth\cr$\iff$}}}}
 \def\R{\mathbb{R}}
@@ -87,20 +93,47 @@ Now for these parameters, the ML-estimates have a simple closed-form solution (i
 The dataset we were given spans different attributes of Portuguese "Vinho Verde" wine, which was originally used in [cite\ndy].
 It consists of twelve features: eleven continuous physicochemical attributes and one discrete sensory attribute (quality).
 Here, i will treat quality as a continuous feature.
-% TODO: maybe visualize the dataset a bit?
-% talk about:
-% what is the data?
-% what are the attributes?
-% maybe some visualization? how does it look?
-% what is the task?
-% what is it used for? (?)
-% what is the problem? (Parameter learning requires the structure to be given. But in pactice, this is not the case. It's rather that the structure is very interesting and needs to be learned. The parameters are then only secondary when it comes to understanding.)
-% parameter learning is rather simple because we were constrained to the model of GBN. This means that all parameters have a simple closed-form ML-estimate given the structure.
 
+\maybe{visualize data}
 \FloatBarrier
 
 
 \section{Methods}
+For the structure learning algorithm, i implemented a tabu search, because it generally performs well in accuracy and runtime (cite overview \ndy).
+I also combined the tabu search with random restarts. The entire parameterized algorithm is illustrated in \autoref{algo:methods:search}.
+
+\begin{algorithm}
+	\tcp{bla bla}
+	% \uIf{$v \in V$ with $\text{deg}_G(v) = 1$ exists} {
+	% 	$v \gets$ an arbitrary node $v$ with $\text{deg}_G(v) = 1$\;
+	% 	\If{$\abs{V}$ is odd} {
+	% 		$v \gets$ an arbitrary neighbour of $v$\;
+	% 	}
+	% }
+	% \uElseIf{$v \in V$ with $\text{deg}_G(v) = 2$ exists}{
+	% 	$v \gets$ an arbitrary node $v$ with $\text{deg}_G(v) = 2$\;
+	% }
+	% \Else{
+	% 	\Return{$\emptyset$}
+	% }
+	% \tcp{Pick every second node}
+	% $W \gets \emptyset$\;
+	% \While{$v$ is not marked} {
+	% 	$W \gets W \cup \set{v}$\;
+	% 	mark $v$\;
+	% 	\If{all neighbours of $v$ are marked} {
+	% 		\Return{W}
+	% 	}
+	% 	$w \gets$ an arbitrary neighbour of $v$ that is not marked\;
+	% 	mark all neighbours of $v$\;
+	% 	$v \gets$ the neighbour of $w$ that is not $v$\;
+	% }
+	% \Return{$W$}
+
+	\caption{Tabu Search}
+	\label{algo:methods:search}
+\end{algorithm}
+
 \ndy
 % talk about what greedy search algorithm was used (in the overview paper (citation?) they said that it's rather common and well performing, so i chose the greedy algorithm (special case hill climbing with tabu walks and restarts))
 % present the hill climbing algorithm (attention! details needed how tabu walks and random restarts are combined! this is not mentioned in the overview)
