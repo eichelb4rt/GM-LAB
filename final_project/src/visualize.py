@@ -117,7 +117,6 @@ def main():
 
     args = parser.parse_args()
     dirname = os.path.dirname(args.filename)
-    # TODO: add this functionality to the README
     if dirname == "graphs":
         # assuming they are graphs
         print("visualizing adjacency matrix")

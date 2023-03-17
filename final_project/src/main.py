@@ -7,13 +7,11 @@ import clock
 from test_likelihood import print_report, cross_validate_detective
 from visualize import visualize_score_history, visualize_tabu_walk
 
-
 def main():
     dataset = pd.read_csv("trainset.csv").to_numpy()
     n = dataset.shape[1]
     empty_adjacency_matrix = np.full((n, n), False)
 
-    # NOTE: turn off logging for a small performance boost
     # NOTE: small number of parameters (43)
     # detective = GreedySearcher(empty_adjacency_matrix,
     #                            regularization_constant=25,

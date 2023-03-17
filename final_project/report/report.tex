@@ -1,9 +1,10 @@
-\documentclass[sigconf, fleqn]{acmart}
+\documentclass[sigconf, fleqn, prologue, dvipsnames]{acmart}
 \usepackage{booktabs}
 \usepackage{placeins}
-\usepackage{algorithmicx}
-\usepackage[noend]{algpseudocode}
-\usepackage{algorithm}
+% \usepackage{algorithmicx}
+% \usepackage[noend]{algpseudocode}
+% \usepackage{algorithm}
+\usepackage{algorithm2e}
 \usepackage{subcaption}
 
 
@@ -44,6 +45,11 @@
 \newcommand{\norm}[1]{\left\| #1 \right\|}
 \newcommand{\skal}[2]{\left\langle #1 | #2 \right\rangle}
 \newcommand{\numberthis}{\addtocounter{equation}{1}\tag{\theequation}}
+\newcommand{\maybe}[1]{%
+	\textcolor{Goldenrod}{#1?}
+    \reversemarginpar
+    \marginpar{\raggedleft\textcolor{Goldenrod}{\rule{2mm}{2mm}}}
+}
 %----- defs
 \def\notiff{\mathrel{{\ooalign{\hidewidth$\not\phantom{"}$\hidewidth\cr$\iff$}}}}
 \def\R{\mathbb{R}}
@@ -52,60 +58,90 @@
 \def\T{\top}
 \def\pa{\text{pa}}
 \def\ndy{
-    \textcolor{red} {\hfill not done yet!}
+    % \textcolor{red} {\hfill not done yet!}
     \reversemarginpar
     \marginpar{\raggedleft\textcolor{red}{\rule{2mm}{2mm}}}
 }
 \def\ghostline{\hfill\vspace*{-5mm}}
 
 \begin{document}
-
-%%
-%% The "title" command has an optional parameter,
-%% allowing the author to define a "short title" to be used in page headers.
-% Fast Entity Resolution With Mock Labels and Sorted Integer Sets
 \title[Project Report]{Project Report\\\large Graphical Models LAB}
-
-%%
-%% The "author" command and its associated commands are used to define
-%% the authors and their affiliations.
-
 \author{Maurice Wenig}
 \affiliation{%
 	\institution{Friedrich Schiller University Jena}
 	\country{Germany}}
 \email{maurice.wenig@uni-jena.de}
 
-
-%%
-%% This command processes the author and affiliation and title
-%% information and builds the first part of the formatted document.
 \maketitle
-
 % \let\thefootnote\relax\footnotetext{AEPRO 2022, March 1, Jena, Germany. Copyright \copyright 2022 for this paper by its authors. Use permitted under Creative Commons License Attribution 4.0 International (CC BY 4.0).}
 
 
 \section{Introduction}
-Some introduction. bla bla
-% talk about:
-% what is the data?
-% what are the attributes?
-% maybe some visualization? how does it look?
-% what is the task?
-% what is it used for? (?)
-% what is the problem? (Parameter learning requires the structure to be given. But in pactice, this is not the case. It's rather that the structure is very interesting and needs to be learned. The parameters are then only secondary when it comes to understanding.)
-% parameter learning is rather simple because we were constrained to the model of GBN. This means that all parameters have a simple closed-form ML-estimate given the structure.
+Learning graphical models is a big aspect of machine learning.
+But for the parameters of the model to be learned, it is often assumed that the structure is already given, which includes information about dependencies and independencies between features.
+However in practice, that is not the case.
+Sometimes even the opposite might be true, that the structure between features itself is much more relevant than the actual amplitude of their interactions, with the hope of being able to interpret the interactions (e.g. in a causal context).
+This is also an inspiration for our assignment, where our main task is coming up with a search strategy to find a sparse Bayesian Network that fits the data we were given.
 
+For our assignment, we focused on Gaussian Bayesian Networks (GBN).
+A GBN is a Bayesian Network where the conditional distributions of a feature given their parents is a Gaussian.
+Another constraint to the GBN is that the mean paramater of the Gaussian, that is the conditional distribution, can only depend linearly on the values of the feature's parents in the Network Graph.
+So with $n$ as the total number of features, the problem of learning the distribution $p(x_i | x_{\pa(i)})$ for a feature $i \in [n]$, its value $x_i \in \R$, and the value of their parents $x_{\pa(i)} \in \R^{n_i}$ is equivalent to learning $\hat{\beta_i}^* \in \R, \hat{\beta_i} \in \R^{n_i}, \hat{\sigma_i} \in \R$ such that $p(x_i | x_{\pa(i)}) \sim \mathcal{N}(\hat{\beta_i}^* + \hat{\beta_i}^\T x_{\pa(i)}, \hat{\sigma_i}^2)$.
+Now for these parameters, the ML-estimates have a simple closed-form solution (it is just linear regression), so finding the best parameters for any given structure is simple and efficient.
+
+% https://doi.org/10.1016/j.dss.2009.05.016
+The dataset we were given spans different attributes of Portuguese "Vinho Verde" wine, which was originally used in [cite\ndy].
+It consists of twelve features: eleven continuous physicochemical attributes and one discrete sensory attribute (quality).
+Here, i will treat quality as a continuous feature.
+
+\maybe{visualize data}
 \FloatBarrier
 
 
 \section{Methods}
+For the structure learning algorithm, i implemented a tabu search, because it generally performs well in accuracy and runtime (cite overview \ndy).
+I also combined the tabu search with random restarts. The entire parameterized algorithm is illustrated in \autoref{algo:methods:search}.
+
+\begin{algorithm}
+	\tcp{bla bla}
+	% \uIf{$v \in V$ with $\text{deg}_G(v) = 1$ exists} {
+	% 	$v \gets$ an arbitrary node $v$ with $\text{deg}_G(v) = 1$\;
+	% 	\If{$\abs{V}$ is odd} {
+	% 		$v \gets$ an arbitrary neighbour of $v$\;
+	% 	}
+	% }
+	% \uElseIf{$v \in V$ with $\text{deg}_G(v) = 2$ exists}{
+	% 	$v \gets$ an arbitrary node $v$ with $\text{deg}_G(v) = 2$\;
+	% }
+	% \Else{
+	% 	\Return{$\emptyset$}
+	% }
+	% \tcp{Pick every second node}
+	% $W \gets \emptyset$\;
+	% \While{$v$ is not marked} {
+	% 	$W \gets W \cup \set{v}$\;
+	% 	mark $v$\;
+	% 	\If{all neighbours of $v$ are marked} {
+	% 		\Return{W}
+	% 	}
+	% 	$w \gets$ an arbitrary neighbour of $v$ that is not marked\;
+	% 	mark all neighbours of $v$\;
+	% 	$v \gets$ the neighbour of $w$ that is not $v$\;
+	% }
+	% \Return{$W$}
+
+	\caption{Tabu Search}
+	\label{algo:methods:search}
+\end{algorithm}
+
+\ndy
 % talk about what greedy search algorithm was used (in the overview paper (citation?) they said that it's rather common and well performing, so i chose the greedy algorithm (special case hill climbing with tabu walks and restarts))
 % present the hill climbing algorithm (attention! details needed how tabu walks and random restarts are combined! this is not mentioned in the overview)
 % -> maybe reasoning needed as to why tabu walks and the random restarts were combined in this way.
 
 
 \subsection{Hill Climbing}
+\ndy
 % talk about how you climb the hill (how do you find all of the possible changes at any given point? (you need to check for cycles etc. - how do you do that efficiently (cite the guy)))
 % how do you efficiently evaluate the change? (you never copy, the adjacency matrix, but apply the change, see what happens, and revert it)
 % how do you evaluate if one change is better than another efficiently? (you never re-calculate the whole objective function, because the changes can be evaluated locally)
@@ -113,6 +149,7 @@ Some introduction. bla bla
 
 
 \subsection{Tabu Walks}
+\ndy
 % talk about how you keep the tabu list efficient
 % you hash the adjacency matrix to compressed byte arrays instead of saving 2-dimensional bitstrings and put em in the queue
 % then at tabu walk start you put them all into set, this allows you to efficiently compute all changes that are not in the tabu lists, because lookups in the hash set are efficient. (and the number of changes you have to check is huge, so this should save a lot of time)
@@ -120,12 +157,13 @@ Some introduction. bla bla
 
 
 \subsection{Random Restarts}
+\ndy
 % sometimes we just do random changes, maybe talk about your choice of uniform distribution among all possible changes (so we don't have a bias)
 % maybe talk about how a bias might be introduced to prioritize additions and deletions, or maybe prioritize flips, idk might be interesting.
 % priors for the random walk could be studied in future works. (maybe find out if someone already did that? cite them if someone exists -> like here, they tried but i won't get into it. if you wanna know more about it, check em out)
 
 
-\subsection{Choice of optimized score}
+\subsection{Choice of Optimized Score}
 % TODO: rewrite this? this is just for remembering what i did and why
 For the score function $p(G | D) \propto p(D | G) \cdot p(G)$, i used the approximation
 \begin{align*}
@@ -178,12 +216,14 @@ But more importantly, this allow a very efficient comparison of two different ch
 
 
 \subsection{Parameter Fine-Tuning}
+\ndy
 % how did you fine tune the parameters? what are we looking for? (for the tabu walk and the random restarts to actually climb out of local optima and result in better optima)
 % include your funny little plots here
 
 
 \section{Results}
 \subsection{Generated Structures}
+\ndy
 % refer to some generated graphs for different lambdas that are visualized in the appendix
 % idk look at the graphs and maybe there's something to note?
 % yes there def is: how sparse is a graph for a given lambda? -> include the plot
@@ -191,14 +231,14 @@ But more importantly, this allow a very efficient comparison of two different ch
 
 \subsection{Performance}
 % for different lambdas, sizes of tabu walks, sizes of random walks -> include specs in appendix!
-Some performance analysis
+Some performance analysis\ndy
 
 
 \subsection{Likelihood}
 \label{sec:results:likelihood}
 % you gotta run this over night or something. Just specify a number of lambdas and do a double-cross validation data = (train_structure, test_structure) = (train_structure, (train_params, test_params))
 % -> maybe only 3 rotations in the structure split
-Cross validation time.
+Cross validation time.\ndy
 \begin{table}[htbp]
 	\caption{Error Score Comparison}
 	\label{tab:results:errors}
@@ -217,12 +257,13 @@ Cross validation time.
 
 
 \subsubsection{Submission Scores}
+\ndy
 % talk about how your learned structures fucking rule on the submission website we got, especially on the sparse side.
 % (maybe introduce the submission website first tho - we could anonymously submit our learned structures, and they were evaluated on an secret test dataset)
 
 
 \section{Conclusion}
-Some conclusion.
+Some conclusion.\ndy
 % i made a pretty efficient greedy search algorithm with tabu walks and random restarts that out-performs the other submitting contestants on the sparse side and is on-par on the not-so-sparse side
 % (why is it efficient - because of avoiding copying adjacency matrices and efficient local comparisons of the difference in the objective function that a change brings)
 % performance depends on (probably lambda, number of tabu matrices stored, length of tabu walk)
@@ -231,7 +272,7 @@ Some conclusion.
 
 \typeout{}
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{literature}
+\bibliography{literature}\ndy
 
 
 \clearpage
