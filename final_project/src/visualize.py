@@ -23,6 +23,7 @@ def visualize_reg_n_params(n_params_per_reg: npt.NDArray[np.float32], out_file: 
     plt.figure(figsize=FIG_SIZE)
     plt.plot(n_params_per_reg[:, 0], n_params_per_reg[:, 1], c="black")
     plt.scatter(n_params_per_reg[:, 0], n_params_per_reg[:, 1], marker="x", c="black")
+    plt.ylim(bottom=0)
     plt.xscale("log")
     plt.title("influence of $\lambda$")
     plt.xlabel("$\lambda$")
@@ -136,13 +137,15 @@ def main():
         visualize_score_history(score_history, method_starts, out_file=out_scores)
         visualize_tabu_walk(score_history, method_starts, out_file=out_tabu)
         print(f"output in {out_scores} and {out_tabu}")
-    elif dirname == ".":
+    elif dirname == "." or len(dirname) == 0:
         # assuming n_params.csv
         print("visualizing params")
         n_params_per_reg = pd.read_csv(args.filename).to_numpy()
         out_file = "plots/n_params.png"
         visualize_reg_n_params(n_params_per_reg, out_file)
         print(f"output in {out_file}")
+    else:
+        print(f"Unknown dir: {dirname}")
 
 
 if __name__ == "__main__":

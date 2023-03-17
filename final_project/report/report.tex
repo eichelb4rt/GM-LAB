@@ -302,14 +302,16 @@ But more importantly, this allow a very efficient comparison of two different ch
 \FloatBarrier
 
 \subsection{Parameter Fine-Tuning}
+% how did you fine tune the parameters? what are we looking for? (for the tabu walk and the random restarts to actually climb out of local optima and result in better optima)
+% include your funny little plots here
 The parameters with the highest impact on the outcome are $\lambda$ (in the objective function), $s_0$ (length of the tabu walks), and $s_1$ (length of the random walks).
 The impact of $\lambda$ will be analyzed in [RESULTS\ndy].
 With $s_0$ and $s_1$, we can fine tune the ability to walk out of slim local maxima, and stay in wider maxima.
 In order to do this, we can analyze the score history over time after the first hill climb.
 
-In \autoref{fig:method:fine_tuning}, we look at two examples of a score history where the parameters still need some tuning.
-In \autoref{fig:method:fine_tuning:too_short_t} the tabu walks do not manage to escape slim maxima, because tabu walks are too short.
-In \autoref{fig:method:fine_tuning:too_long_r} the random restarts distort the top adjacency matrix too much and return to worse local maxima, because the random walks are too long.
+In \autoref{fig:methods:fine_tuning}, we look at two examples of a score history where the parameters still need some tuning.
+In \autoref{fig:methods:fine_tuning:too_short_t} the tabu walks do not manage to escape slim maxima, because tabu walks are too short.
+In \autoref{fig:methods:fine_tuning:too_long_r} the random restarts distort the top adjacency matrix too much and return to worse local maxima, because the random walks are too long.
 
 \begin{figure}
 	\centering
@@ -317,29 +319,35 @@ In \autoref{fig:method:fine_tuning:too_long_r} the random restarts distort the t
 		\centering
 		\includegraphics[scale=0.2]{graphics/tabu_small_2ts.png}
 		\caption{Short tabu walks}
-		\label{fig:method:fine_tuning:too_short_t}
+		\label{fig:methods:fine_tuning:too_short_t}
 	\end{subfigure}
 	\begin{subfigure}{0.2\textwidth}
 		\centering
 		\includegraphics[scale=0.2]{graphics/tabu_small_2tr.png}
 		\caption{Long random walks}
-		\label{fig:method:fine_tuning:too_long_r}
+		\label{fig:methods:fine_tuning:too_long_r}
 	\end{subfigure}
 	\caption{Score history after the first hill climb}
-	\label{fig:method:fine_tuning}
+	\label{fig:methods:fine_tuning}
 \end{figure}
 \FloatBarrier
-\ndy
-% how did you fine tune the parameters? what are we looking for? (for the tabu walk and the random restarts to actually climb out of local optima and result in better optima)
-% include your funny little plots here
 
 
 \section{Results}
 \subsection{Generated Structures}
-\ndy
 % refer to some generated graphs for different lambdas that are visualized in the appendix
 % idk look at the graphs and maybe there's something to note?
 % yes there def is: how sparse is a graph for a given lambda? -> include the plot
+The greedy search generates different structures depending on the regularization constant $\lambda$ in the objective function.
+The number of paramaters in the generated structures is $n_{params} = 2 \abs{V_G} + \abs{E_G}$ for any structure $G$.
+This decreases when $\lambda$ increases.
+This is illustrated in \autoref{fig:results:n_params}.
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.3]{graphics/n_params.png}
+	\caption{Number of parameters vs $\lambda$}
+	\label{fig:results:n_params}
+\end{figure}
 
 
 \subsection{Performance}
