@@ -490,10 +490,10 @@ I made an efficient, well-performing greedy search algorithm with tabu walks and
 By changing the regularization constant $\lambda$ in the objective function, the sparsity of the generated adjacency matrices can be adapted up to a very fine degree.
 The greedy search performs especially well in the generation of sparse adjacency matrices.
 
-With this greedy search, i managed to find an adjacency matrix that is both sparse and has a high likelihood, with 45 parameters.
+With this greedy search, i found an adjacency matrix that is both sparse and has a high likelihood, with 45 parameters.
 It is possible to get higher likelihoods with more parameters, when the tabu walks are made longer. But this comes at a cost of high runtime.
 
-Future work could include parallelizing the search for the best performing change, making tabu walks more efficient, and finding an efficient way of checking if a flip introduces new cycles.
+Future work could include parallelizing the search for the best performing change, finding a way to make tabu walks more efficient, and finding an efficient way of checking if a flip introduces new cycles.
 
 \typeout{}
 \bibliographystyle{ACM-Reference-Format}
