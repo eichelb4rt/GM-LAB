@@ -366,6 +366,10 @@ The specifications of the machine the time was measured on can be found in [APPE
 We were also given a submission site where we could anonymously upload our adjacency matrices and see how we compare to others.
 The submission site computes the likelihood of our submitted adjacency matrices with a secret test set.
 
+\subsubsection{Parameterization Comparison}
+For the comparison of the small parameterization with the other two, i measured the likelihoods and runtimes on the same train and test sets, on the same machine, but on different days.
+For this reason, the runtime of the smaller models in its intended $\lambda$-region is included in the results section.
+
 
 \section{Results}
 \subsection{Generated Structures}
@@ -384,6 +388,26 @@ This was confirmed in practice. The results are illustrated in \autoref{fig:resu
 	\label{fig:results:n_params}
 \end{figure}
 
+
+\subsection{Parameterization}
+As seen in the score history in \autoref{fig:results:parameterization}, the tabu walks are long enough to climb out of local maxima and the random restarts are short enough to not distort the adjacency matrix too much.
+Sometimes the random restarts even manage to jump into better maxima (second restart in \autoref{fig:results:parameterization}).
+
+\begin{figure}
+	\centering
+	\begin{subfigure}{0.2\textwidth}
+		\centering
+		\includegraphics[scale=0.35]{graphics/scores_small_2t_2.png}
+		\caption{with the first hill climb}
+	\end{subfigure}
+	\begin{subfigure}{0.2\textwidth}
+		\centering
+		\includegraphics[scale=0.35]{graphics/tabu_small_2t_2.png}
+		\caption{after the first hill climb}
+	\end{subfigure}
+	\caption{Score history with successful tabu walks and random restarts}
+	\label{fig:results:parameterization}
+\end{figure}
 
 \subsection{Performance}
 % for different lambdas, sizes of tabu walks, sizes of random walks -> include specs in appendix!
@@ -412,8 +436,6 @@ The score history confirms that the tabu walks are significantly shorter than th
 	\label{fig:results:lambda_0}
 \end{figure}
 
-ALSO PLOT SMALL MODELS WITH HIGH LAMBDA\ndy.
-
 
 \subsection{Likelihood}
 \label{sec:results:likelihood}
@@ -421,7 +443,7 @@ The results of the likelihood measurements are illustrated in \autoref{fig:resul
 
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.5]{graphics/likelihood.png}
+	\includegraphics[scale=0.5]{graphics/likelihoods.png}
 	\caption{Likelihood of adjacency matrices with different $\#params$}
 	\label{fig:results:likelihood}
 \end{figure}
@@ -431,7 +453,6 @@ After that, there is a small dip in likelihood and then it slowly increases agai
 Finally it reaches a likelihood that is not significantly better than at $\#params = 45$.
 The reason for the small dip could be a bad parameterization of the medium sized greedy search model (see \autoref{sec:methods:analysis:parameterization}), even though it was fine-tuned the most out of the three models.
 
-
 \subsubsection{Submission Scores}
 % talk about how your learned structures fucking rule on the submission website we got, especially on the sparse side.
 % (maybe introduce the submission website first tho - we could anonymously submit our learned structures, and they were evaluated on an secret test dataset)
@@ -439,14 +460,40 @@ The adjacency matrices i submitted to the submission website are competitive wit
 On the sparse side ($\#params \leq 33$), my adjacency matrices even hold a small, yet significant and consistent advantage over the other top scores.
 
 
-\section{Conclusion}
-Some conclusion.\ndy
-% i made a pretty efficient greedy search algorithm with tabu walks and random restarts that out-performs the other submitting contestants on the sparse side and is on-par on the not-so-sparse side
-% (why is it efficient - because of avoiding copying adjacency matrices and efficient local comparisons of the difference in the objective function that a change brings)
-% performance depends on (probably lambda, number of tabu matrices stored, length of tabu walk)
-% future work could speed this up by implementing everything in faster programming languages like C++, and maybe try parallelizing the search for the best possible change.
-% or maybe faster cycle checks with the context of changing one edge at a time
+\subsection{Are Longer Tabu Walks Worth It?}
+In \autoref{fig:results:smaller:parameterizations} the parameterization of models for medium sized and big adjacency models are compared to the parameterization of small adjacency matrices.
 
+\begin{figure}
+	\centering
+	\begin{subfigure}{0.2\textwidth}
+		\centering
+		\includegraphics[scale=0.35]{graphics/both_likelihoods.png}
+		\caption{Likelihood}
+		\label{fig:results:smaller:likelihood}
+	\end{subfigure}
+	\begin{subfigure}{0.2\textwidth}
+		\centering
+		\includegraphics[scale=0.35]{graphics/both_times.png}
+		\caption{Runtime}
+		\label{fig:results:smaller:times}
+	\end{subfigure}
+	\caption{Comparison of different parameterizations}
+	\label{fig:results:smaller:parameterizations}
+\end{figure}
+
+The shorter tabu walks of the small models lead to a huge improvement in runtime, and only lead to slightly worse likelihoods than medium models, and sometimes even slightly better likelihoods than the big models.
+This means that the medium and big models only get slightly better results at a huge runtime cost.
+
+
+\section{Conclusion}
+I made an efficient, well-performing greedy search algorithm with tabu walks and random restarts.
+By changing the regularization constant $\lambda$ in the objective function, the sparsity of the generated adjacency matrices can be adapted up to a very fine degree.
+The greedy search performs especially well in the generation of sparse adjacency matrices.
+
+With this greedy search, i managed to find an adjacency matrix that is both sparse and has a high likelihood, with 45 parameters.
+It is possible to get higher likelihoods with more parameters, when the tabu walks are made longer. But this comes at a cost of high runtime.
+
+Future work could include parallelizing the search for the best performing change, making tabu walks more efficient, and finding an efficient way of checking if a flip introduces new cycles.
 
 \typeout{}
 \bibliographystyle{ACM-Reference-Format}
