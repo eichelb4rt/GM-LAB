@@ -121,14 +121,14 @@ It is important to note that the function arguments are all passed by reference,
 	$G_{max} \gets \text{copy of } G$\;
 	HillClimb($D, G_{max}$)\;
 	\For{$t_0$ times}{
-		TabuWalk($D, G_{max}, n_0, l$)\;
+		TabuWalk($D, G_{max}, s_0, l$)\;
 		HillClimb($D, G_{max}$)\;
 	}
 	\For{$t_1$ times}{
-		RandomRestart($D, G_{max}, n_1$)\;
+		RandomRestart($D, G_{max}, s_1$)\;
 		HillClimb($D, G_{max}$)\;
 		\For{$t_0$ times}{
-			TabuWalk($D, G_{max}, n_0, l$)\;
+			TabuWalk($D, G_{max}, s_0, l$)\;
 			HillClimb($D, G_{max}$)\;
 		}
 	}
@@ -138,10 +138,10 @@ First we do a hill climb. After the first hill climb, we do $t_0$ tabu walks fol
 Then we do a random restart and do it all again. The random restart procedure is repeated $t_1$ times.
 \begin{itemize}
 	\item $t_0$: number of tabu walks
-	\item $n_0$: maximum length of a tabu walk
+	\item $s_0$: maximum number of steps of a tabu walk
 	\item $l$: length of the tabu list
 	\item $t_1$: number of random restarts
-	\item $n_1$: number of random steps during a random restart
+	\item $s_1$: number of random steps during a random restart
 \end{itemize}
 
 \FloatBarrier
@@ -152,22 +152,29 @@ Then we do a random restart and do it all again. The random restart procedure is
 % how do you efficiently evaluate the change? (you never copy, the adjacency matrix, but apply the change, see what happens, and revert it)
 % how do you evaluate if one change is better than another efficiently? (you never re-calculate the whole objective function, because the changes can be evaluated locally)
 % ^ this is further discussed in [Implications for Hill Climbing]
-The hill climbing algorithm just applies every possible change that improves the objective function.
-It is illustrated in \autoref{func:methods:climb_hill}.
+In every iteration, the hill climbing algorithm computes the best possible elementary change among all changes.
+If this change improves the objective function, it is applied.
+This algorithm is illustrated in \autoref{func:methods:climb_hill}.
 
 \begin{function}
 	\caption{ClimbHill()}
 	\label{func:methods:climb_hill}
 	\Input{dataset $D$, current DAG $G$}
 	\While{$S_{max}$ increases}{
+		$S_G \gets Score(G, D)$\;
+		$c_{max} \gets$ IMPOSSIBLY\_BAD\_CHANGE\;
 		$C \gets AllChanges(G)$\;
 		\ForEach{$c \in C$}{
 			apply the change $c$ to $G$\;
-			\eIf{$Score(G, D) > S_{max}$}{
-				$S_{max} \gets Score(G', D)$\;
-			}{
-				undo the change $c$ in $G$\;
+			$S_c \gets Score(G, D)$\;
+			undo the change $c$ in $G$\;
+			\uIf{$S_c > S_{max}$}{
+				$S_{max} \gets S_c$\;
+				$c_{max} \gets c$\;
 			}
+		}
+		\uIf{$S_c > S_G$}{
+			apply the change $c_{max}$ to $G$\;
 		}
 	}
 \end{function}
@@ -230,7 +237,7 @@ The rest of the algorithm is very similar to hill climbing, just with minimal ad
 	\item in each iteration, the top change is applied, disregarding whether it improves the objective function
 	\item if the current value of the objective function exceeds the initial value of the objective function, the tabu walk is stopped
 \end{itemize}
-To efficiently check which changes result in visited adjacency matrices, the tabu list was turned into a set in each iteration.
+To efficiently check which changes result in visited adjacency matrices, a set with all tabu hashes is created before each iteration.
 
 
 \subsection{Random Restarts}
@@ -271,7 +278,7 @@ That means if we construct a graph $G'$, where $G'$ was made by applying an elem
 	\iff\sum\limits_{i \in [n]} S_i(G') - S_i(G)                                         & > \lambda (\abs{E_{G'}} - \abs{E_{G}})                                  \\
 	\iff\underbrace{\sum\limits_{i \in \set{u,v}} S_i(G') - S_i(G)}_{:= \Delta_S(G', G)} & > \lambda \underbrace{(\abs{E_{G'}} - \abs{E_{G}})}_{:= \Delta_E(G',G)}
 \end{align*}
-Where the second equivalence holds because $S_i(\cdot)$ only depends on node $i$ and its parents.
+Where the second equivalence holds because $S_i(G)$ only depends on node $i$ and its parents.
 Therefore $S_i(G') = S_i(G)$ for $i \notin \set{u, v}$.
 Note that $\Delta_E(G',G)$ only depends on the type of change applied to $G$:
 $$
@@ -292,20 +299,55 @@ A derivation of this can be found in \autoref{sec:calc:comparison}.
 
 The interpretation of this is that a change has to bring an improvement of at least $\lambda$ per edge in order to improve the whole objective function.
 But more importantly, this allow a very efficient comparison of two different changes, which we need to efficiently find the best possible change for hill climbing and tabu walks.
-
+\FloatBarrier
 
 \subsection{Parameter Fine-Tuning}
-\ndy
 % how did you fine tune the parameters? what are we looking for? (for the tabu walk and the random restarts to actually climb out of local optima and result in better optima)
 % include your funny little plots here
+The parameters with the highest impact on the outcome are $\lambda$ (in the objective function), $s_0$ (length of the tabu walks), and $s_1$ (length of the random walks).
+The impact of $\lambda$ will be analyzed in [RESULTS\ndy].
+With $s_0$ and $s_1$, we can fine tune the ability to walk out of slim local maxima, and stay in wider maxima.
+In order to do this, we can analyze the score history over time after the first hill climb.
+
+In \autoref{fig:methods:fine_tuning}, we look at two examples of a score history where the parameters still need some tuning.
+In \autoref{fig:methods:fine_tuning:too_short_t} the tabu walks do not manage to escape slim maxima, because tabu walks are too short.
+In \autoref{fig:methods:fine_tuning:too_long_r} the random restarts distort the top adjacency matrix too much and return to worse local maxima, because the random walks are too long.
+
+\begin{figure}
+	\centering
+	\begin{subfigure}{0.2\textwidth}
+		\centering
+		\includegraphics[scale=0.2]{graphics/tabu_small_2ts.png}
+		\caption{Short tabu walks}
+		\label{fig:methods:fine_tuning:too_short_t}
+	\end{subfigure}
+	\begin{subfigure}{0.2\textwidth}
+		\centering
+		\includegraphics[scale=0.2]{graphics/tabu_small_2tr.png}
+		\caption{Long random walks}
+		\label{fig:methods:fine_tuning:too_long_r}
+	\end{subfigure}
+	\caption{Score history after the first hill climb}
+	\label{fig:methods:fine_tuning}
+\end{figure}
+\FloatBarrier
 
 
 \section{Results}
 \subsection{Generated Structures}
-\ndy
 % refer to some generated graphs for different lambdas that are visualized in the appendix
 % idk look at the graphs and maybe there's something to note?
 % yes there def is: how sparse is a graph for a given lambda? -> include the plot
+The greedy search generates different structures depending on the regularization constant $\lambda$ in the objective function.
+The number of paramaters in the generated structures is $n_{params} = 2 \abs{V_G} + \abs{E_G}$ for any structure $G$.
+This decreases when $\lambda$ increases.
+This is illustrated in \autoref{fig:results:n_params}.
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.3]{graphics/n_params.png}
+	\caption{Number of parameters vs $\lambda$}
+	\label{fig:results:n_params}
+\end{figure}
 
 
 \subsection{Performance}
