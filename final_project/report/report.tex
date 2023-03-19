@@ -237,7 +237,8 @@ The rest of the algorithm is very similar to hill climbing, just with minimal ad
 	\item in each iteration, the top change is applied, disregarding whether it improves the objective function
 	\item if the current value of the objective function exceeds the initial value of the objective function, the tabu walk is stopped
 \end{itemize}
-To efficiently check which changes result in visited adjacency matrices, a set with all tabu hashes is created before each iteration.
+To efficiently check which changes result in visited adjacency matrices, a counter with the number of occurencces in the tabu list for each hash is used.
+This counter can efficiently be updated whenever hashes of adjacency matrix are appended to or removed from the queue.
 
 
 \subsection{Random Restarts}
@@ -297,7 +298,7 @@ Similarly, two alterations $G_1$ and $G_2$ of $G$ can be compared:
 \end{align*}
 A derivation of this can be found in \autoref{sec:calc:comparison}.
 
-The interpretation of this is that a change has to bring an improvement of at least $\lambda$ per edge in order to improve the whole objective function.
+The interpretation of this is that a change has to bring an improvement of at least $\lambda$ per edge in order to improve the whole objective function (which makes sense looking at the objective function).
 But more importantly, this allow a very efficient comparison of two different changes, which we need to efficiently find the best possible change for hill climbing and tabu walks.
 \FloatBarrier
 
@@ -305,7 +306,7 @@ But more importantly, this allow a very efficient comparison of two different ch
 % how did you fine tune the parameters? what are we looking for? (for the tabu walk and the random restarts to actually climb out of local optima and result in better optima)
 % include your funny little plots here
 The parameters with the highest impact on the outcome are $\lambda$ (in the objective function), $s_0$ (length of the tabu walks), and $s_1$ (length of the random walks).
-The impact of $\lambda$ will be analyzed in [RESULTS\ndy].
+The impact of $\lambda$ will be analyzed in \autoref{sec:results:structures}.
 With $s_0$ and $s_1$, we can fine tune the ability to walk out of slim local maxima, and stay in wider maxima.
 In order to do this, we can analyze the score history over time after the first hill climb.
 
@@ -317,13 +318,13 @@ In \autoref{fig:methods:fine_tuning:too_long_r} the random restarts distort the 
 	\centering
 	\begin{subfigure}{0.2\textwidth}
 		\centering
-		\includegraphics[scale=0.2]{graphics/tabu_small_2ts.png}
+		\includegraphics[scale=0.35]{graphics/tabu_small_2ts.png}
 		\caption{Short tabu walks}
 		\label{fig:methods:fine_tuning:too_short_t}
 	\end{subfigure}
 	\begin{subfigure}{0.2\textwidth}
 		\centering
-		\includegraphics[scale=0.2]{graphics/tabu_small_2tr.png}
+		\includegraphics[scale=0.35]{graphics/tabu_small_2tr.png}
 		\caption{Long random walks}
 		\label{fig:methods:fine_tuning:too_long_r}
 	\end{subfigure}
@@ -333,54 +334,96 @@ In \autoref{fig:methods:fine_tuning:too_long_r} the random restarts distort the 
 \FloatBarrier
 
 
+\subsection{Analysis}
+\subsubsection{Parameterization}
+\label{sec:methods:analysis:parameterization}
+For all measurements, i parameterized the greedy search in three in different ways for different numbers of expected parameters (see \autoref{tab:methods:parameters}).
+
+\begin{table}[htbp]
+	\caption{Parameterization of the greedy search}
+	\label{tab:methods:parameters}
+	\begin{tabular}{llccccc}
+		\toprule
+		Parameterization & $\lambda$     & $t_0$ & $s_0$ & $m$  & $t_1$ & $s_1$ \\
+		\midrule
+		big              & 0 - 3         & 3     & 150   & 2000 & 5     & 10    \\
+		medium           & 3 - 25        & 3     & 80    & 400  & 5     & 5     \\
+		small            & 25 - $\infty$ & 3     & 20    & 100  & 5     & 5     \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\subsubsection{Likelihood}
+In order to measure the likelihood of the generated structures, i split up the data we were given into a training set and a test set.
+I trained the models with different $\lambda$ on the train set to generate the adjacency matrices.
+Then i used cross validation on the test set to measure the likelihood of the ML-estimate of the parameters for each adjacency matrix.
+
+\subsubsection{Performance}
+While generating the structures with my train set, i also measured the runtime of the greedy search.
+The specifications of the machine the time was measured on can be found in [APPENDIX\ndy].
+
+\subsubsection{Submissions}
+We were also given a submission site where we could anonymously upload our adjacency matrices and see how we compare to others.
+The submission site computes the likelihood of our submitted adjacency matrices with a secret test set.
+
+
 \section{Results}
 \subsection{Generated Structures}
+\label{sec:results:structures}
 % refer to some generated graphs for different lambdas that are visualized in the appendix
 % idk look at the graphs and maybe there's something to note?
 % yes there def is: how sparse is a graph for a given lambda? -> include the plot
 The greedy search generates different structures depending on the regularization constant $\lambda$ in the objective function.
-The number of paramaters in the generated structures is $n_{params} = 2 \abs{V_G} + \abs{E_G}$ for any structure $G$.
-This decreases when $\lambda$ increases.
-This is illustrated in \autoref{fig:results:n_params}.
+The number of paramaters in the generated structures is $\#params = 2 \abs{V_G} + \abs{E_G}$ for any structure $G$.
+Because of the relationship between edge importance and $\lambda$ discussed in \autoref{sec:methods:score:implications}, this term is expected to decrease as $\lambda$ increases.
+This was confirmed in practice. The results are illustrated in \autoref{fig:results:n_params}.
 \begin{figure}
 	\centering
-	\includegraphics[scale=0.3]{graphics/n_params.png}
-	\caption{Number of parameters vs $\lambda$}
+	\includegraphics[scale=0.5]{graphics/n_params.png}
+	\caption{Number of parameters for structures generated by different $\lambda$}
 	\label{fig:results:n_params}
 \end{figure}
 
 
 \subsection{Performance}
 % for different lambdas, sizes of tabu walks, sizes of random walks -> include specs in appendix!
-Some performance analysis\ndy
+The results of the runtime measurements are illustrated in \autoref{fig:results:runtime}.
+The small, medium, and big models are seperated with the red vertical lines.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.5]{graphics/times.png}
+	\caption{Runtime of greedy search with different $\lambda$}
+	\label{fig:results:runtime}
+\end{figure}
+
+The bigger models take much more time than the smaller models, while $\lambda$ barely has an impact.
+The means that the limiting factor in the runtime of the greedy search is the length of the tabu walk.
+ALSO PLOT SMALL MODELS WITH HIGH LAMBDA\ndy.
 
 
 \subsection{Likelihood}
 \label{sec:results:likelihood}
-% you gotta run this over night or something. Just specify a number of lambdas and do a double-cross validation data = (train_structure, test_structure) = (train_structure, (train_params, test_params))
-% -> maybe only 3 rotations in the structure split
-Cross validation time.\ndy
-\begin{table}[htbp]
-	\caption{Error Score Comparison}
-	\label{tab:results:errors}
-	\begin{tabular}{lrrr}
-		\toprule
-		Recommender   & RMSE  & MAE   \\
-		\midrule
-		user based    & 0.670 & 0.301 \\
-		item based    & 0.569 & 0.222 \\
-		factorization & 0.512 & 0.207 \\
-		hybrid        & 0.496 & 0.193 \\
-		\bottomrule
-	\end{tabular}
-\end{table}
-\FloatBarrier
+The results of the likelihood measurements are illustrated in \autoref{fig:results:likelihood}.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.5]{graphics/likelihood.png}
+	\caption{Likelihood of adjacency matrices with different $\#params$}
+	\label{fig:results:likelihood}
+\end{figure}
+
+The likelihood of the generated structures drastically increases up to $\#params = 45$.
+After that, there is a small dip in likelihood and then it slowly increases again until $\#params \approx 66$ and then barely changes anymore.
+Finally it reaches a likelihood that is not significantly better than at $\#params = 45$.
+The reason for the small dip could be a bad parameterization of the medium sized greedy search model (see \autoref{sec:methods:analysis:parameterization}), even though it was fine-tuned the most out of the three models.
 
 
 \subsubsection{Submission Scores}
-\ndy
 % talk about how your learned structures fucking rule on the submission website we got, especially on the sparse side.
 % (maybe introduce the submission website first tho - we could anonymously submit our learned structures, and they were evaluated on an secret test dataset)
+The adjacency matrices i submitted to the submission website are competitive with the other top scoring adjacency matrices.
+On the sparse side ($\#params \leq 33$), my adjacency matrices even hold a small, yet significant and consistent advantage over the other top scores.
 
 
 \section{Conclusion}

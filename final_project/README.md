@@ -82,4 +82,4 @@ Adjacency matrices and can be rendered with `./render.sh <filename>`. The result
 
 - `"graphs"`: it assumes the input file is an adjacency matrix stored as a `.npy` file. It the converts the adjacency matrix to a graph encoded in a `.dot` file.
 - `"logs"`: it assumes the input file is the score history and method starts saved in a `.npy` file. It then plots the score history and method starts.
-- `"."`: it assumes the input file is `n_params.csv` or `likelihoods.npy`. It then plots the number of parameters over $\lambda$ or the likelihoods of the generated graphs.
+- `"results"`: it assumes the input file is `n_params.csv` or `*times*.npy`. It then plots the number of parameters or the runtime over $\lambda$.

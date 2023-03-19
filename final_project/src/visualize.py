@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import graphs
 
 
-FIG_SIZE = (7, 7)
+FIG_SIZE = (4, 4)
 DPI = 200
 
 METHOD_COLORS = {
@@ -21,13 +21,43 @@ METHOD_COLORS = {
 
 def visualize_reg_n_params(n_params_per_reg: npt.NDArray[np.float32], out_file: str = "plots/n_params.png"):
     plt.figure(figsize=FIG_SIZE)
-    plt.plot(n_params_per_reg[:, 0], n_params_per_reg[:, 1], c="black")
-    plt.scatter(n_params_per_reg[:, 0], n_params_per_reg[:, 1], marker="x", c="black")
+    plt.plot(n_params_per_reg[:, 0], n_params_per_reg[:, 1])
+    plt.scatter(n_params_per_reg[:, 0], n_params_per_reg[:, 1], marker="x")
     plt.ylim(bottom=0)
-    plt.xscale("log")
-    plt.title("influence of $\lambda$")
+    plt.xlim(left=0)
+    plt.xscale("symlog")
+    # plt.title("influence of $\lambda$")
     plt.xlabel("$\lambda$")
     plt.ylabel("#params")
+    plt.tight_layout()
+    plt.savefig(out_file, dpi=DPI)
+
+def visualize_times(in_file: str, out_file: str):
+    small_lambdas = [25, 30, 50, 60, 80, 100, 120, 150, 194, 240, 280, 350, 360, 370]
+    medium_lambdas = [4.5, 5, 5.2, 5.5, 6, 8, 10, 15, 21, 22, 23.15, 23.1]
+    big_lambdas = [0, 0.2, 0.5, 1, 2, 3]
+    times = np.load(in_file)
+
+    print("calculating scores")
+    x = small_lambdas + medium_lambdas + big_lambdas
+    y = times
+    order = np.argsort(x)
+    x = np.array(x)[order]
+    y = np.array(y)[order]
+    print("plotting")
+    plt.figure(figsize=FIG_SIZE)
+    plt.plot(x, y)
+    plt.scatter(x, y, marker='x')
+    plt.axvline(4, c="red")
+    plt.axvline(24, c="red")
+    plt.text(1, 100, "big")
+    plt.text(5, 100, "medium")
+    plt.text(70, 100, "small")
+    plt.xlim(left=-0.05)
+    plt.xscale("symlog")
+    plt.xlabel("$\lambda$")
+    plt.ylabel("time in seconds")
+    plt.tight_layout()
     plt.savefig(out_file, dpi=DPI)
 
 
@@ -50,10 +80,11 @@ def visualize_score_history(score_history: list[float], method_starts: list[tupl
                     color=METHOD_COLORS[method_name],
                     alpha=0.3)
         already_labelled[method_name] = True
-    plt.title("the whole search")
+    # plt.title("the whole search")
     plt.xlabel("iteration")
     plt.ylabel("objective function")
-    plt.legend()
+    plt.legend(loc="lower right")
+    plt.tight_layout()
     plt.savefig(out_file, dpi=DPI)
     plt.cla()
 
@@ -84,10 +115,11 @@ def visualize_tabu_walk(score_history: list[float], method_starts: list[tuple[st
                     color=METHOD_COLORS[method_name],
                     alpha=0.3)
         already_labelled[method_name] = True
-    plt.title("the tabu walks")
+    # plt.title("the tabu walks")
     plt.xlabel("iteration")
     plt.ylabel("objective function")
-    plt.legend()
+    plt.legend(loc="lower right")
+    plt.tight_layout()
     plt.savefig(out_file, dpi=DPI)
     plt.cla()
 
@@ -131,18 +163,23 @@ def main():
         # assuming they are logs
         print("visualizing log")
         score_history, method_starts = np.load(args.filename, allow_pickle=True)
-        stem = Path(args.filename).stem
         out_scores = f"plots/scores_{stem}.png"
         out_tabu = f"plots/tabu_{stem}.png"
         visualize_score_history(score_history, method_starts, out_file=out_scores)
         visualize_tabu_walk(score_history, method_starts, out_file=out_tabu)
         print(f"output in {out_scores} and {out_tabu}")
-    elif dirname == "." or len(dirname) == 0:
+    elif dirname == "results":
+        stem = Path(args.filename).stem
         # assuming n_params.csv
-        print("visualizing params")
-        n_params_per_reg = pd.read_csv(args.filename).to_numpy()
-        out_file = "plots/n_params.png"
-        visualize_reg_n_params(n_params_per_reg, out_file)
+        if stem == "n_params":
+            print("visualizing params")
+            n_params_per_reg = pd.read_csv(args.filename).to_numpy()
+            out_file = "plots/n_params.png"
+            visualize_reg_n_params(n_params_per_reg, out_file)
+        elif "times" in stem:
+            print("visualizing times")
+            out_file = f"plots/{stem}.png"
+            visualize_times(args.filename, out_file)
         print(f"output in {out_file}")
     else:
         print(f"Unknown dir: {dirname}")
