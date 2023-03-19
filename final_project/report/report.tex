@@ -399,6 +399,19 @@ The small, medium, and big models are seperated with the red vertical lines.
 
 The bigger models take much more time than the smaller models, while $\lambda$ barely has an impact.
 The means that the limiting factor in the runtime of the greedy search is the length of the tabu walk.
+Also for $\lambda = 0$, the runtime is strangely much shorter compared to the other big models.
+The reason for this could be that a lot of possible changes improve the objective function by a very small amount after the first hill climb.
+This would result in the tabu walks that are significantly shorter, which reduces the runtime.
+A score history of the big model with $\lambda$ is illustrated in \autoref{fig:results:lambda_0}.
+The score history confirms that the tabu walks are significantly shorter than they could be.
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.5]{graphics/tabu_lambda_0.png}
+	\caption{Score history after the first hill climb, big model with $\lambda = 0$}
+	\label{fig:results:lambda_0}
+\end{figure}
+
 ALSO PLOT SMALL MODELS WITH HIGH LAMBDA\ndy.
 
 

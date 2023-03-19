@@ -163,6 +163,7 @@ def main():
         # assuming they are logs
         print("visualizing log")
         score_history, method_starts = np.load(args.filename, allow_pickle=True)
+        stem = Path(args.filename).stem
         out_scores = f"plots/scores_{stem}.png"
         out_tabu = f"plots/tabu_{stem}.png"
         visualize_score_history(score_history, method_starts, out_file=out_scores)
