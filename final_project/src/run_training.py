@@ -49,11 +49,11 @@ for lambda_reg in small_lambdas + medium_lambdas + big_lambdas:
     top_adjacency_matrix = detective.fit(train_set)
     clock.stop("greedy search")
     out_file = f"train_top_{graphs.n_params(top_adjacency_matrix)}"
-    time_needed = clock.total("hill climb")
+    time_needed = clock.total("greedy search")
     print(f"done: lambda={lambda_reg}\ntime needed: {round(time_needed, 2)}s\noutput: {out_file}")
     times.append(time_needed)
     clock.clear_all()
     graphs.save(top_adjacency_matrix, name=out_file)
 
 print(times)
-np.save("times.npy", np.array(times))
+np.save("results/times.npy", np.array(times))
