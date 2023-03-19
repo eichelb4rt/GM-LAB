@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from queue import Queue
 import numpy.typing as npt
+from collections import Counter
 
 import graphs
 from network import linear_regression
@@ -21,10 +22,10 @@ def node_score(node: int, parents: list[int], dataset: npt.NDArray[np.float64]) 
     return -0.5 * np.sum(((y - mu) / sigma)**2) - n * np.log(sigma)
 
 
-def hash_adj(adjacency_matrix: npt.NDArray[np.bool_]) -> bytes:
+def hash_adj(adjacency_matrix: npt.NDArray[np.bool_]) -> int:
     """Hashable byte representation of the adjacency matrix."""
 
-    return bytes(np.packbits(adjacency_matrix))
+    return int.from_bytes(bytes(np.packbits(adjacency_matrix)), "little")
 
 
 class GreedySearcher:
@@ -39,7 +40,8 @@ class GreedySearcher:
         self.n_tabu_walks = n_tabu_walks
         self.max_tabu_list_size = max_tabu_list_size
         self.tabu_walk_length = tabu_walk_length
-        self.tabu_list: Queue[bytes]
+        self.tabu_list: Queue[int]
+        self.n_occurences_in_queue: Counter[int]
         self.tabu_list_size: int
 
         self.n_random_restarts = n_random_restarts
@@ -61,6 +63,7 @@ class GreedySearcher:
 
         # init empty tabu list
         self.tabu_list = Queue()
+        self.n_occurences_in_queue = Counter()
         self.tabu_list_size = 0
 
         # init score log
@@ -125,8 +128,6 @@ class GreedySearcher:
         # go for a walk
         total_improvement = 0
         for i in range(self.tabu_walk_length):
-            # set for fast acces (we don't want to go through the list every time we check if an adjacency matrix is tabu)
-            tabu_hashes: set[bytes] = set(self.tabu_list.queue)
             # construct all changes that are not tabu
             all_possible_changes = graphs.construct_all_changes(self.top_adjacency_matrix)
             # in the first step, we already visited every possible change (because we came from hill climbing where the last step considered every possible change)
@@ -134,7 +135,7 @@ class GreedySearcher:
             if i == 0:
                 non_tabu_changes = all_possible_changes
             else:
-                non_tabu_changes = [(change_type, changed_edge) for change_type, changed_edge in all_possible_changes if self.resulting_hash(changed_edge, change_type) not in tabu_hashes]
+                non_tabu_changes = [(change_type, changed_edge) for change_type, changed_edge in all_possible_changes if self.n_occurences_in_queue[self.resulting_hash(changed_edge, change_type)] == 0]
             # find the top change among them
             top_node_score_improvement, top_changed_edge, top_change_type, new_node_scores = self.find_top_change(non_tabu_changes, dataset)
             # we looked through all non-tabu changes and determined the best, now apply it
@@ -249,8 +250,10 @@ class GreedySearcher:
     def update_tabu_list(self):
         adjacency_matrix_hash = hash_adj(self.top_adjacency_matrix)
         self.tabu_list.put(adjacency_matrix_hash)
+        self.n_occurences_in_queue[adjacency_matrix_hash] += 1
         if self.tabu_list_size > self.max_tabu_list_size:
-            self.tabu_list.get()
+            removed = self.tabu_list.get()
+            self.n_occurences_in_queue[removed] -= 1
         else:
             self.tabu_list_size += 1
 

@@ -59,7 +59,7 @@ def cross_validate_detective(detective: GreedySearcher, x: npt.NDArray[np.float6
     return np.sum(log_likelihoods, axis=0)
 
 
-def cross_validate_structure(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float64], rotations=8) -> float:
+def cross_validate_structure(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float64], rotations=8, print_time=True) -> float:
     """Calculates the log likelihood with a sort-of cross validation (splits up data into multiple training and test sets and sums up the log likelihood of the test sets). This is done to catch overfitting."""
 
     log_likelihoods = np.empty(rotations)
@@ -74,9 +74,10 @@ def cross_validate_structure(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDA
         clock.stop("calculating log likelihood")
     clock.stop("total")
     # print runtime
-    clock.avg("fitting data")
-    clock.avg("calculating log likelihood")
-    clock.total("total")
+    if print_time:
+        clock.avg("fitting data")
+        clock.avg("calculating log likelihood")
+        clock.total("total")
     clock.clear_all()
     # sum up the log likelihoods (mean is not the right tool here!)
     return np.sum(log_likelihoods, axis=0)
