@@ -53,7 +53,7 @@ def cross_validate_detective(detective: GreedySearcher, x: npt.NDArray[np.float6
         log_likelihoods[i] = gbn.log_likelihood(x_test)
         progress.update(i + 1)
     # print runtime
-    clock.avg("fitting detective")
+    clock.print_avg("fitting detective")
     clock.clear_all()
     # sum up the log likelihoods (mean is not the right tool here!)
     return np.sum(log_likelihoods, axis=0)
@@ -75,9 +75,9 @@ def cross_validate_structure(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDA
     clock.stop("total")
     # print runtime
     if print_time:
-        clock.avg("fitting data")
-        clock.avg("calculating log likelihood")
-        clock.total("total")
+        clock.print_avg("fitting data")
+        clock.print_avg("calculating log likelihood")
+        clock.print_total("total")
     clock.clear_all()
     # sum up the log likelihoods (mean is not the right tool here!)
     return np.sum(log_likelihoods, axis=0)

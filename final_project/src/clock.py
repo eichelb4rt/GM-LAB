@@ -26,18 +26,30 @@ def stop(clock_name: str, print_time=False):
         print(f"timed {clock_name}: {round(time_elapsed, 2)}s")
 
 
-def avg(clock_name: str):
+def avg(clock_name: str) -> float:
+    if clock_name not in measured:
+        raise LookupError(f"The clock \"{clock_name}\" hasn't been measured!")
+    return np.mean(measured[clock_name])
+
+
+def print_avg(clock_name: str):
     if clock_name not in measured:
         raise LookupError(f"The clock \"{clock_name}\" hasn't been measured!")
     mean_time = np.mean(measured[clock_name])
     print(f"{clock_name}: avg time {round(mean_time, 2)}s")
 
 
-def total(clock_name: str):
+def total(clock_name: str) -> float:
     if clock_name not in measured:
         raise LookupError(f"The clock \"{clock_name}\" hasn't been measured!")
-    mean_time = np.sum(measured[clock_name])
-    print(f"{clock_name}: total time {round(mean_time, 2)}s")
+    return np.sum(measured[clock_name])
+
+
+def print_total(clock_name: str):
+    if clock_name not in measured:
+        raise LookupError(f"The clock \"{clock_name}\" hasn't been measured!")
+    total_time = np.sum(measured[clock_name])
+    print(f"{clock_name}: total time {round(total_time, 2)}s")
 
 
 def clear_all():

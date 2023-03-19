@@ -112,7 +112,7 @@ def main():
     print("climbing...")
     top_adjacency_matrix = detective.fit(dataset)
     clock.stop("hill climb")
-    clock.total("hill climb")
+    clock.print_total("hill climb")
     print_report(top_adjacency_matrix, dataset)
     graphs.save(top_adjacency_matrix, name=f"top_{graphs.n_params(top_adjacency_matrix)}")
     np.save("logs/small_example.npy", np.array((detective.score_history, detective.method_starts), dtype=object))

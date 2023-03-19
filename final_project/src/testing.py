@@ -49,44 +49,49 @@ medium_lambdas = [4.5, 5, 5.2, 5.5, 6, 8, 10, 15, 21, 22, 23.15, 23.1]
 big_lambdas = [0, 0.2, 0.5, 1, 2, 3]
 train_set = pd.read_csv("my_train.csv").to_numpy()
 test_set = pd.read_csv("my_test.csv").to_numpy()
-for lambda_reg in small_lambdas + medium_lambdas + big_lambdas:
-    if lambda_reg in small_lambdas:
-        detective = GreedySearcher(empty_adjacency_matrix,
-                                   regularization_constant=lambda_reg,
+# times = []
+# for lambda_reg in small_lambdas + medium_lambdas + big_lambdas:
+#     if lambda_reg in small_lambdas:
+#         detective = GreedySearcher(empty_adjacency_matrix,
+#                                    regularization_constant=lambda_reg,
 
-                                   n_tabu_walks=3,
-                                   max_tabu_list_size=100,
-                                   tabu_walk_length=20,
+#                                    n_tabu_walks=3,
+#                                    max_tabu_list_size=100,
+#                                    tabu_walk_length=20,
 
-                                   n_random_restarts=5,
-                                   random_walk_length=5)
-    elif lambda_reg in medium_lambdas:
-        detective = GreedySearcher(empty_adjacency_matrix,
-                                   regularization_constant=lambda_reg,
+#                                    n_random_restarts=5,
+#                                    random_walk_length=5)
+#     elif lambda_reg in medium_lambdas:
+#         detective = GreedySearcher(empty_adjacency_matrix,
+#                                    regularization_constant=lambda_reg,
 
-                                   n_tabu_walks=3,
-                                   max_tabu_list_size=400,
-                                   tabu_walk_length=80,
+#                                    n_tabu_walks=3,
+#                                    max_tabu_list_size=400,
+#                                    tabu_walk_length=80,
 
-                                   n_random_restarts=5,
-                                   random_walk_length=5)
-    elif lambda_reg in big_lambdas:
-        detective = GreedySearcher(empty_adjacency_matrix,
-                                   regularization_constant=lambda_reg,
+#                                    n_random_restarts=5,
+#                                    random_walk_length=5)
+#     elif lambda_reg in big_lambdas:
+#         detective = GreedySearcher(empty_adjacency_matrix,
+#                                    regularization_constant=lambda_reg,
 
-                                   n_tabu_walks=3,
-                                   max_tabu_list_size=2000,
-                                   tabu_walk_length=150,
+#                                    n_tabu_walks=3,
+#                                    max_tabu_list_size=2000,
+#                                    tabu_walk_length=150,
 
-                                   n_random_restarts=5,
-                                   random_walk_length=10)
-    clock.start("hill climb")
-    print("climbing...")
-    top_adjacency_matrix = detective.fit(train_set)
-    clock.stop("hill climb")
-    clock.total("hill climb")
-    print_report(top_adjacency_matrix, test_set)
-    graphs.save(top_adjacency_matrix, name=f"train_top_{graphs.n_params(top_adjacency_matrix)}")
+#                                    n_random_restarts=5,
+#                                    random_walk_length=10)
+#     clock.start("hill climb")
+#     print("climbing...")
+#     top_adjacency_matrix = detective.fit(train_set)
+#     clock.stop("hill climb")
+#     clock.print_total("hill climb")
+#     times.append(clock.total("hill climb"))
+#     clock.clear_all()
+#     print_report(top_adjacency_matrix, test_set)
+#     graphs.save(top_adjacency_matrix, name=f"train_top_{graphs.n_params(top_adjacency_matrix)}")
+# print(times)
+# np.save("times.npy", np.array(times))
 
 
 print("calculating scores")
@@ -95,7 +100,7 @@ y = []
 for adjacency_matrix_file in glob.glob("graphs/train_top_*.npy"):
     adjacency_matrix = np.load(adjacency_matrix_file)
     n_params = graphs.n_params(adjacency_matrix)
-    log_likelihood = cross_validate_structure(adjacency_matrix, train_set, print_time=False)
+    log_likelihood = cross_validate_structure(adjacency_matrix, test_set, print_time=False)
     x.append(n_params)
     y.append(log_likelihood)
 order = np.argsort(x)
@@ -105,6 +110,7 @@ print("plotting")
 plt.figure(figsize=FIG_SIZE)
 plt.plot(x, y)
 plt.scatter(x, y, marker='x')
+plt.xlim(left=0, right=100)
 plt.xlabel("#params")
 plt.ylabel("log likelihood")
 plt.savefig("plots/likelihood.png", dpi=DPI)
