@@ -15,7 +15,7 @@
 \settopmatter{printacmref=false} % Removes citation information below abstract
 \renewcommand\footnotetextcopyrightpermission[1]{} % removes footnote with conference information in 
 
-\acmConference[GM LAB]{Graphical Models LAB}{August 9}{Jena, Germany}
+\acmConference[GM LAB]{Graphical Models LAB}{March 20}{Jena, Germany}
 
 
 \graphicspath{{graphics/}}
@@ -84,18 +84,18 @@
 \section{Introduction}
 Learning graphical models is a big aspect of machine learning.
 But for the parameters of the model to be learned, it is often assumed that the structure is already given, which includes information about dependencies and independencies between features.
-However in practice, that is not the case.
-Sometimes even the opposite might be true, that the structure between features itself is much more relevant than the actual amplitude of their interactions, with the hope of being able to interpret the interactions (e.g. in a causal context).
+However in practice, that is often not the case.
+Sometimes even the opposite might be true, that the structure itself is much more relevant than the actual amplitude of the feature interactions, with the hope of being able to interpret the interactions (e.g. in a causal context).
 This is also an inspiration for our assignment, where our main task is coming up with a search strategy to find a sparse Bayesian Network that fits the data we were given.
 
 For our assignment, we focused on Gaussian Bayesian Networks (GBN).
 A GBN is a Bayesian Network where the conditional distributions of a feature given their parents is a Gaussian.
-Another constraint to the GBN is that the mean paramater of the Gaussian, that is the conditional distribution, can only depend linearly on the values of the feature's parents in the Network Graph.
-So with $n$ as the total number of features, the problem of learning the distribution $p(x_i | x_{\pa(i)})$ for a feature $i \in [n]$, its value $x_i \in \R$, and the value of their parents $x_{\pa(i)} \in \R^{n_i}$ is equivalent to learning $\hat{\beta_i}^* \in \R, \hat{\beta_i} \in \R^{n_i}, \hat{\sigma_i} \in \R$ such that $p(x_i | x_{\pa(i)}) \sim \mathcal{N}(\hat{\beta_i}^* + \hat{\beta_i}^\T x_{\pa(i)}, \hat{\sigma_i}^2)$.
+Another constraint to the GBN is that the mean paramater of a feature's Gaussian conditional distribution can only depend linearly on the values of the feature's parents in the Network Graph.
+So with $n$ as the total number of features, and $n_i$ as the number of parents of a feature $i \in [n]$, the problem of learning the distribution $p(x_i | x_{\pa(i)})$ for a feature $i \in [n]$, where $x_i \in \R$ is the value of the feature, and $x_{\pa(i)} \in \R^{n_i}$ are values of its parents, is equivalent to learning $\hat{\beta_i}^* \in \R, \hat{\beta_i} \in \R^{n_i}, \hat{\sigma_i} \in \R$ such that $p(x_i | x_{\pa(i)}) \sim \mathcal{N}(\hat{\beta_i}^* + \hat{\beta_i}^\T x_{\pa(i)}, \hat{\sigma_i}^2)$.
 Now for these parameters, the ML-estimates have a simple closed-form solution (it is just linear regression), so finding the best parameters for any given structure is simple and efficient.
 
 % https://doi.org/10.1016/j.dss.2009.05.016
-The dataset we were given spans different attributes of Portuguese "Vinho Verde" wine, which was originally used in \cite{Cortez2009}.
+The dataset we were given spans different attributes of Portuguese "Vinho Verde" wine, and was originally used in \cite{Cortez2009}.
 It consists of twelve features: eleven continuous physicochemical attributes and one discrete sensory attribute (quality).
 Here, i will treat quality as a continuous feature.
 
@@ -108,7 +108,7 @@ Here, i will treat quality as a continuous feature.
 % -> maybe reasoning needed as to why tabu walks and the random restarts were combined in this way.
 For the structure learning algorithm, i implemented a tabu search, because it generally performs well in accuracy and runtime \cite{Scutari2019}.
 I also combined the tabu search with random restarts. The entire parameterized algorithm is illustrated in \autoref{algo:methods:search}.
-It is important to note that the function arguments are all passed by reference, so mutations inside of functions will affect the passed argument even outside the function.
+It is important to note for the understanding of the algorithm, that the function arguments (especially adjacency matrices) are all passed by reference, so mutations inside of functions will affect the passed argument even outside of the function scope.
 
 \begin{algorithm}
 	\caption{Tabu Search with Random Restarts}
@@ -131,7 +131,7 @@ It is important to note that the function arguments are all passed by reference,
 	}
 \end{algorithm}
 
-First we do a hill climb. After the first hill climb, we do $t_0$ tabu walks followed by another hill climb each.
+In the top level algorithm, we first do a hill climb. After the first hill climb, we do $t_0$ tabu walks followed by another hill climb each.
 Then we do a random restart and do it all again. The random restart procedure is repeated $t_1$ times.
 \begin{itemize}
 	\item $t_0$: number of tabu walks
@@ -243,7 +243,8 @@ This counter can efficiently be updated whenever hashes of adjacency matrix are 
 % maybe talk about how a bias might be introduced to prioritize additions and deletions, or maybe prioritize flips, idk might be interesting.
 % priors for the random walk could be studied in future works. (maybe find out if someone already did that? cite them if someone exists -> like here, they tried but i won't get into it. if you wanna know more about it, check em out)
 For the random restarts, a list of all possible changes is generated at each step.
-Then one of them is chosen from a uniform distribution.
+Then one of them is chosen from a uniform distribution, and the chosen change is applied to the adjacency matrix.
+This is repeated $n_1$ times.
 
 
 \subsection{Choice of Optimized Score}
@@ -270,7 +271,7 @@ A derivation of this can be found in \autoref{sec:calc:score_function}.
 \subsubsection{Implications for Hill Climbing}
 \label{sec:methods:score:implications}
 Elementary changes (addition, substraction, flip of an edge) only influence local distributions.
-That means if we construct a graph $G'$, where $G'$ was made by applying an elementary change to an edge $(u, v)$ in $G$, the comparison $p(G' | D) > p(G | D)$ can be evaluated locally:
+That means if we construct a graph $G'$, where $G'$ was made by applying an elementary change $c$ to an edge $(u, v)$ in $G$, the comparison $p(G' | D) > p(G | D)$ can be evaluated locally:
 \begin{align*}
 	\sum\limits_{i \in [n]} S_i(G') - \lambda \abs{E_{G'}}                               & > \sum\limits_{i \in [n]} S_i(G) - \lambda \abs{E_{G}}                  \\
 	\iff\sum\limits_{i \in [n]} S_i(G') - S_i(G)                                         & > \lambda (\abs{E_{G'}} - \abs{E_{G}})                                  \\
@@ -281,33 +282,33 @@ Therefore $S_i(G') = S_i(G)$ for $i \notin \set{u, v}$.
 Note that $\Delta_E(G',G)$ only depends on the type of change applied to $G$:
 $$
 	\Delta_E(G',G) = \begin{cases}
-		1  & \text{addition} \\
-		0  & \text{flip}     \\
-		-1 & \text{deletion} \\
+		1  & c\text{ is addition} \\
+		0  & c\text{ is flip}     \\
+		-1 & c\text{ is deletion} \\
 	\end{cases}
 $$
 $\Delta_S(G', G)$ measures the improvement of node scores when the change is applied to $G$.
 
 Similarly, two alterations $G_1$ and $G_2$ of $G$ can be compared:
-\begin{align*}
-	\sum\limits_{i \in [n]} S_i(G_1) - \lambda \abs{E_{G_1}} & > \sum\limits_{i \in [n]} S_i(G_2) - \lambda \abs{E_{G_2}} \\
-	\iff \Delta_S(G_1, G) - \Delta_S(G_2, G)                 & > \lambda \left(\Delta_E(G_1,G) - \Delta_E(G_2,G)\right)   \\
-\end{align*}
+\begin{flalign*}
+	\sum\limits_{i \in [n]} S_i(G_1) - \lambda \abs{E_{G_1}} & > \sum\limits_{i \in [n]} S_i(G_2) - \lambda \abs{E_{G_2}} &&\\
+	\iff \Delta_S(G_1, G) - \Delta_S(G_2, G)                 & > \lambda \left(\Delta_E(G_1,G) - \Delta_E(G_2,G)\right)   &&\\
+\end{flalign*}
 A derivation of this can be found in \autoref{sec:calc:comparison}.
 
-The interpretation of this is that a change has to bring an improvement of at least $\lambda$ per edge in order to improve the whole objective function (which makes sense looking at the objective function).
-But more importantly, this allow a very efficient comparison of two different changes, which we need to efficiently find the best possible change for hill climbing and tabu walks.
+The interpretation of this is that a change has to bring an improvement of at least $\lambda$ per edge to the local node scores, in order to improve the whole objective function (which makes sense looking at the objective function).
+But more importantly, this allows a very efficient comparison of two different changes, which we need to efficiently find the best possible change for hill climbing and tabu walks.
 \FloatBarrier
 
 \subsection{Parameter Fine-Tuning}
 % how did you fine tune the parameters? what are we looking for? (for the tabu walk and the random restarts to actually climb out of local optima and result in better optima)
 % include your funny little plots here
-The parameters with the highest impact on the outcome are $\lambda$ (in the objective function), $s_0$ (length of the tabu walks), and $s_1$ (length of the random walks).
+The parameters with the highest impact on the generated structures are $\lambda$ (in the objective function), $s_0$ (length of the tabu walks), and $s_1$ (length of the random walks).
 The impact of $\lambda$ will be analyzed in \autoref{sec:results:structures}.
 With $s_0$ and $s_1$, we can fine tune the ability to walk out of slim local maxima, and stay in wider maxima.
 In order to do this, we can analyze the score history over time after the first hill climb.
 
-In \autoref{fig:methods:fine_tuning}, we look at two examples of a score history where the parameters still need some tuning.
+In \autoref{fig:methods:fine_tuning}, we look at two examples of a score history where the parameters still need some fine-tuning.
 In \autoref{fig:methods:fine_tuning:too_short_t} the tabu walks do not manage to escape slim maxima, because tabu walks are too short.
 In \autoref{fig:methods:fine_tuning:too_long_r} the random restarts distort the top adjacency matrix too much and return to worse local maxima, because the random walks are too long.
 
@@ -365,7 +366,7 @@ The submission site computes the likelihood of our submitted adjacency matrices 
 
 \subsubsection{Parameterization Comparison}
 For the comparison of the small parameterization with the other two, i measured the likelihoods and runtimes on the same train and test sets, on the same machine, but on different days.
-For this reason, the runtime of the smaller models in its intended $\lambda$-region is included in the results section.
+For this reason, the runtime of the smaller models in its intended $\lambda$-region is included twice in the results section.
 
 
 \section{Results}
@@ -422,7 +423,7 @@ The bigger models take much more time than the smaller models, while $\lambda$ b
 The means that the limiting factor in the runtime of the greedy search is the length of the tabu walk.
 Also for $\lambda = 0$, the runtime is strangely much shorter compared to the other big models.
 The reason for this could be that a lot of possible changes improve the objective function by a very small amount after the first hill climb.
-This would result in the tabu walks that are significantly shorter, which reduces the runtime.
+This would result in tabu walks that are significantly shorter, which reduces the runtime.
 A score history of the big model with $\lambda$ is illustrated in \autoref{fig:results:lambda_0}.
 The score history confirms that the tabu walks are significantly shorter than they could be.
 
@@ -447,7 +448,7 @@ The results of the likelihood measurements are illustrated in \autoref{fig:resul
 
 The likelihood of the generated structures drastically increases up to $\#params = 45$.
 After that, there is a small dip in likelihood and then it slowly increases again until $\#params \approx 66$ and then barely changes anymore.
-Finally it reaches a likelihood that is not significantly better than at $\#params = 45$.
+Finally it reaches a likelihood that is not significantly better than the likelihood at $\#params = 45$.
 The reason for the small dip could be a bad parameterization of the medium sized greedy search model (see \autoref{sec:methods:analysis:parameterization}), even though it was fine-tuned the most out of the three models.
 
 \subsubsection{Submission Scores}
@@ -483,11 +484,11 @@ This means that the medium and big models only get slightly better results at a 
 
 
 \section{Conclusion}
-I made an efficient, well-performing greedy search algorithm with tabu walks and random restarts.
+I implemented an efficient, well-performing tabu search with random restarts.
 By changing the regularization constant $\lambda$ in the objective function, the sparsity of the generated adjacency matrices can be adapted up to a very fine degree.
-The greedy search performs especially well in the generation of sparse adjacency matrices.
+The tabu search performs especially well in the generation of sparse adjacency matrices.
 
-With this greedy search, i found an adjacency matrix that is both sparse and has a high likelihood, with 45 parameters.
+With this tabu search, i found an adjacency matrix that is both sparse and has a high likelihood, with 45 parameters.
 It is possible to get higher likelihoods with more parameters, when the tabu walks are made longer. But this comes at a cost of high runtime.
 
 Future work could include parallelizing the search for the best performing change, finding a way to make tabu walks more efficient, and finding an efficient way of checking if a flip introduces new cycles.
