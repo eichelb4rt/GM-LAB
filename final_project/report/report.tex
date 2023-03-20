@@ -1,11 +1,9 @@
 \documentclass[sigconf, fleqn, prologue, dvipsnames]{acmart}
 \usepackage{booktabs}
 \usepackage{placeins}
-% \usepackage{algorithmicx}
-% \usepackage[noend]{algpseudocode}
-% \usepackage{algorithm}
 \usepackage[ruled, procnumbered]{algorithm2e}
 \usepackage{subcaption}
+\usepackage{textcomp}
 
 
 %% \BibTeX command to typeset BibTeX logo in the docs
@@ -97,19 +95,18 @@ So with $n$ as the total number of features, the problem of learning the distrib
 Now for these parameters, the ML-estimates have a simple closed-form solution (it is just linear regression), so finding the best parameters for any given structure is simple and efficient.
 
 % https://doi.org/10.1016/j.dss.2009.05.016
-The dataset we were given spans different attributes of Portuguese "Vinho Verde" wine, which was originally used in [cite\ndy].
+The dataset we were given spans different attributes of Portuguese "Vinho Verde" wine, which was originally used in \cite{Cortez2009}.
 It consists of twelve features: eleven continuous physicochemical attributes and one discrete sensory attribute (quality).
 Here, i will treat quality as a continuous feature.
 
-\maybe{visualize data}
-\FloatBarrier
+% \maybe{visualize data}
 
 
 \section{Methods}
 % talk about what greedy search algorithm was used (in the overview paper (citation?) they said that it's rather common and well performing, so i chose the greedy algorithm (special case hill climbing with tabu walks and restarts))
 % present the hill climbing algorithm (attention! details needed how tabu walks and random restarts are combined! this is not mentioned in the overview)
 % -> maybe reasoning needed as to why tabu walks and the random restarts were combined in this way.
-For the structure learning algorithm, i implemented a tabu search, because it generally performs well in accuracy and runtime (cite overview\ndy).
+For the structure learning algorithm, i implemented a tabu search, because it generally performs well in accuracy and runtime \cite{Scutari2019}.
 I also combined the tabu search with random restarts. The entire parameterized algorithm is illustrated in \autoref{algo:methods:search}.
 It is important to note that the function arguments are all passed by reference, so mutations inside of functions will affect the passed argument even outside the function.
 
@@ -217,7 +214,7 @@ Another key point to the efficiency of \autoref{func:methods:all_changes} is the
 For additions, this can be done by computing the transitive closure $G^t$ of $G$, which can be done in $\O(\abs{V_G}^3)$.
 Then if $(v, u) \notin E_{G^t}$, the addition of $(u,v)$ will not create a new cycle.
 For flips, i didn't find a more efficient way than completely checking the resulting graph for cycles.
-This can be done in $\O(\abs{V_G} + \abs{E_G})$ with Kosaraju-Sharir's algorithm [cite\ndy].
+This can be done in $\O(\abs{V_G} + \abs{E_G})$ with Kosaraju-Sharir's algorithm \cite{hopcroft1983data}.
 But because we use ajdacency matrices instead of adjacency lists, Kosaraju-Sharir's algorithm takes $\O(\abs{V_G}^2)$.
 Therefore, the resulting time for generating all flips is $\O(\abs{E_G} \cdot \abs{V_G}^2)$.
 It follows that the overall time for generating all possible changes is $\O((\abs{V_G} + \abs{E_G}) \cdot \abs{V_G}^2)$.
@@ -360,7 +357,7 @@ Then i used cross validation on the test set to measure the likelihood of the ML
 
 \subsubsection{Performance}
 While generating the structures with my train set, i also measured the runtime of the greedy search.
-The specifications of the machine the time was measured on can be found in [APPENDIX\ndy].
+The specifications of the machine the time was measured on can be found in \autoref{sec:specs}.
 
 \subsubsection{Submissions}
 We were also given a submission site where we could anonymously upload our adjacency matrices and see how we compare to others.
@@ -497,7 +494,7 @@ Future work could include parallelizing the search for the best performing chang
 
 \typeout{}
 \bibliographystyle{ACM-Reference-Format}
-\bibliography{literature}\ndy
+\bibliography{literature}
 
 
 \clearpage
@@ -534,6 +531,14 @@ Therefore
 	\iff \Delta_S(G_1, G) - \Delta_S(G_2, G)                                                  & > \lambda \left(\Delta_E(G_1,G) - \Delta_E(G_2,G)\right)   \\
 \end{align*}
 
+\section{Specifications Used for Performance Analysis}
+\label{sec:specs}
+The runtime was analyzed in Python 3.11.2 on the following hardware:
+\begin{itemize}
+	\item CPU: Intel\textregistered\ Core\texttrademark\ i7-7700HQ (2.80GHz)
+	\item GPU: NVIDIA\textregistered\ GeForce\texttrademark\ GTX 1060
+	\item RAM: 16GB DDR4 (2400 MHz)
+\end{itemize}
 
 \end{document}
 \endinput
