@@ -1,11 +1,7 @@
 import numpy as np
-import glob
-import pandas as pd
 import matplotlib.pyplot as plt
 
-import graphs
 from visualize import FIG_SIZE, DPI
-from test_likelihood import cross_validate_structure
 
 small_lambdas = [25, 30, 50, 60, 80, 100, 120, 150, 194, 240, 280, 350, 360, 370]
 medium_lambdas = [4.5, 5, 5.2, 5.5, 6, 8, 10, 15, 21, 22, 23.15, 23.1]

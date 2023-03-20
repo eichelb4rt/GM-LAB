@@ -1,0 +1,7 @@
+{
+    "n_tabu_walks": 3,
+    "max_tabu_list_size": 10,
+    "tabu_walk_length": 3,
+    "n_random_restarts": 5,
+    "random_walk_length": 5
+}

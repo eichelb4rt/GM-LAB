@@ -1,121 +1,56 @@
+import json
+import argparse
 import numpy as np
 import pandas as pd
 
+import clock
 import graphs
 from structure import GreedySearcher
-import clock
-from test_likelihood import print_report, cross_validate_detective
-from visualize import visualize_score_history, visualize_tabu_walk
+from test_likelihood import print_report
+
 
 def main():
-    dataset = pd.read_csv("trainset.csv").to_numpy()
+    parser = argparse.ArgumentParser(description="Learn an adjacency matrix from trainset.csv.")
+    parser.add_argument("lambda_reg",
+                        type=float,
+                        help="Regularization constant in the objective function.")
+    parser.add_argument("-c",
+                        "--config",
+                        default="configs/small.json",
+                        help="JSON file with the greedy search parameters.")
+    parser.add_argument("--trainset",
+                        default="trainset.csv",
+                        help="Dataset the structure will be learned with.")
+    parser.add_argument("--output_name",
+                        default="learned_structure",
+                        help="Name (stem) of the .npy file that the adjacency matrix will be saved to.")
+    parser.add_argument("--log",
+                        action='store_true',
+                        help="Enables logging.")
+    args = parser.parse_args()
+    
+    # build the detective
+    dataset = pd.read_csv(args.trainset).to_numpy()
+    with open(args.config, 'r') as f:
+        config = json.load(f)
+    
     n = dataset.shape[1]
     empty_adjacency_matrix = np.full((n, n), False)
+    detective = GreedySearcher.from_config(config, empty_adjacency_matrix, args.lambda_reg, args.log)
 
-    # NOTE: small number of parameters (43)
-    # detective = GreedySearcher(empty_adjacency_matrix,
-    #                            regularization_constant=25,
-
-    #                            n_tabu_walks=3,
-    #                            max_tabu_list_size=10,
-    #                            tabu_walk_length=5,
-
-    #                            n_random_restarts=5,
-    #                            random_walk_length=5,
-
-    #                            logging_enabled=True)
-    # NOTE: small 2
-    detective = GreedySearcher(empty_adjacency_matrix,
-                               regularization_constant=25,
-
-                               n_tabu_walks=3,
-                               max_tabu_list_size=100,
-                               tabu_walk_length=20,
-
-                               n_random_restarts=5,
-                               random_walk_length=5,
-
-                               logging_enabled=True)
-    # NOTE: small example where the random walks are too long
-    # detective = GreedySearcher(empty_adjacency_matrix,
-    #                            regularization_constant=25,
-
-    #                            n_tabu_walks=3,
-    #                            max_tabu_list_size=100,
-    #                            tabu_walk_length=20,
-
-    #                            n_random_restarts=5,
-    #                            random_walk_length=50,
-
-    #                            logging_enabled=True)
-    # NOTE: small example where the tabu walks are too short
-    # detective = GreedySearcher(empty_adjacency_matrix,
-    #                            regularization_constant=25,
-
-    #                            n_tabu_walks=3,
-    #                            max_tabu_list_size=10,
-    #                            tabu_walk_length=3,
-
-    #                            n_random_restarts=5,
-    #                            random_walk_length=5,
-
-    #                            logging_enabled=True)
-    # NOTE: medium number of parameters (54)
-    # detective = GreedySearcher(empty_adjacency_matrix,
-    #                            regularization_constant=8,
-
-    #                            n_tabu_walks=3,
-    #                            max_tabu_list_size=150,
-    #                            tabu_walk_length=30,
-
-    #                            n_random_restarts=5,
-    #                            random_walk_length=5,
-
-    #                            logging_enabled=True)
-    # NOTE: medium 2
-    # detective = GreedySearcher(empty_adjacency_matrix,
-    #                            regularization_constant=8,
-
-    #                            n_tabu_walks=3,
-    #                            max_tabu_list_size=400,
-    #                            tabu_walk_length=80,
-
-    #                            n_random_restarts=5,
-    #                            random_walk_length=5,
-
-    #                            logging_enabled=True)
-    # NOTE: big number of parameters (67)
-    # detective = GreedySearcher(empty_adjacency_matrix,
-    #                            regularization_constant=3,
-
-    #                            n_tabu_walks=3,
-    #                            max_tabu_list_size=300,
-    #                            tabu_walk_length=70,
-
-    #                            n_random_restarts=5,
-    #                            random_walk_length=10,
-
-    #                            logging_enabled=True)
-    # NOTE: big 2
-    # detective = GreedySearcher(empty_adjacency_matrix,
-    #                            regularization_constant=0.5,
-
-    #                            n_tabu_walks=3,
-    #                            max_tabu_list_size=2000,
-    #                            tabu_walk_length=150,
-
-    #                            n_random_restarts=5,
-    #                            random_walk_length=10,
-
-    #                            logging_enabled=True)
+    # search for the top structure
     clock.start("hill climb")
     print("climbing...")
     top_adjacency_matrix = detective.fit(dataset)
     clock.stop("hill climb")
     clock.print_total("hill climb")
+    graphs.save(top_adjacency_matrix, name=args.output_name)
+    print(f"learned structure saved to graphs/{args.output_name}.npy")
+    if args.log:
+        log_file = f"logs/{args.output_name}.npy"
+        np.save(log_file, np.array((detective.score_history, detective.method_starts), dtype=object))
+        print(f"logs saved to {log_file}")
     print_report(top_adjacency_matrix, dataset)
-    graphs.save(top_adjacency_matrix, name=f"top_{graphs.n_params(top_adjacency_matrix)}")
-    np.save("logs/small_example.npy", np.array((detective.score_history, detective.method_starts), dtype=object))
 
 
 if __name__ == "__main__":

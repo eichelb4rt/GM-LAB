@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from typing import Self
 from queue import Queue
 import numpy.typing as npt
 from collections import Counter
@@ -118,7 +119,6 @@ class GreedySearcher:
 
     def tabu_walk(self, dataset: npt.NDArray[np.float64]):
         """Apply the best possible change that hasn't been visited yet. Doesn't matter if it improves the objective function or not. If the result is better than the original, use that."""
-
 
         original_adjacency_matrix = self.top_adjacency_matrix.copy()
         original_node_scores = self.node_scores.copy()
@@ -259,6 +259,17 @@ class GreedySearcher:
 
     def score(self) -> float:
         return np.sum(self.node_scores) - self.regularization_constant * graphs.n_edges(self.top_adjacency_matrix)
+
+    @classmethod
+    def from_config(cls, config: dict[str, int], initial_adjacency_matrix: npt.NDArray[np.bool_], regularization_constant: float = 0, logging_enabled: bool = False) -> Self:
+        return cls(initial_adjacency_matrix,
+                   regularization_constant,
+                   config["n_tabu_walks"],
+                   config["max_tabu_list_size"],
+                   config["tabu_walk_length"],
+                   config["n_random_restarts"],
+                   config["random_walk_length"],
+                   logging_enabled)
 
 
 def main():

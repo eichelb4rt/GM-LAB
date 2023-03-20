@@ -25,6 +25,36 @@ The `GreedySearcher` has multiple arguments:
 - `random_walk_length`: number of random changes applied to the adjacency matrix during a random walk
 - `logging_enabled`: enables logging of the score history and method start times
 
+You can learn structures with `src/main.py`.
+
+### Usage
+
+```text
+usage: main.py [-h] [-c CONFIG] [--trainset TRAINSET] [--output_name OUTPUT_NAME] [--log] lambda_reg
+
+Learn an adjacency matrix from trainset.csv.
+
+positional arguments:
+  lambda_reg            Regularization constant in the objective function.
+
+options:
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        JSON file with the greedy search parameters.
+  --trainset TRAINSET   Dataset the structure will be learned with.
+  --output_name OUTPUT_NAME
+                        Name (stem) of the .npy file that the adjacency matrix will be saved to.
+  --log                 Enables logging.
+```
+
+### Examples
+
+```text
+python src/main.py 25
+python src/main.py 8 -c configs/medium.json --log
+python src/main.py 2 -c configs/big.json --trainset my_train.csv --output_name big_model --log
+```
+
 ## Learn Parameters
 
 `src/network.py` learns the parameters of a GBN given structure. In the same file, there is an implementation of a conversion of the GBN to an equivalent multivariate Gaussian. This multivariate Gaussian then has the ability to produce samples. This was used to test if the ML-estimates of the parameters learn the correct parameters.
@@ -35,7 +65,28 @@ The `GreedySearcher` has multiple arguments:
 4. learned the parameters from the samples
 5. and compared the learned parameters to the preset parameters
 
-You can run the tests yourself with `python src/network.py`.
+You can run the tests yourself with `python src/network.py --test`.
+
+### Usage
+
+```text
+usage: Learn the parameters for a GBN with a given adjacency matrix. [-h] [--trainset TRAINSET] [--test] filename
+
+positional arguments:
+  filename             The .npy file with the adjacency matrix of the learned GBN.
+
+options:
+  -h, --help           show this help message and exit
+  --trainset TRAINSET  The .csv file with the data the GBN parameters learned with.
+  --test               Tests the implementation (no other arguments needed).
+```
+
+### Examples
+
+```text
+python src/network.py graphs/top_45.npy
+python src/network.py graphs/top_69.npy --trainset my_train.csv
+```
 
 ## Test Likelihood
 

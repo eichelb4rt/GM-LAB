@@ -1,8 +1,11 @@
+import argparse
 import numpy as np
-import numpy.typing as npt
+import pandas as pd
 from typing import Self
+import numpy.typing as npt
 
 import graphs
+from test_arg import TestAction
 
 
 def linear_regression(x: npt.NDArray[np.float64], y: npt.NDArray[np.float64], lambda_reg: float = 0) -> tuple[npt.NDArray[np.float64], float]:
@@ -209,7 +212,7 @@ class GaussianBayesNet:
         return MultivariateGaussian(mean_vector, covariance_matrix)
 
 
-def main():
+def test_network():
     # test if the conversion to a multivariate gaussian is correct
     # this example is taken from https://helenedk.medium.com/an-introduction-to-gaussian-bayesian-networks-4eeed3d8e6e0
     # p(x_0) ~ N(2, 4)
@@ -256,7 +259,7 @@ def main():
     print("network.py: learning the correct parameters.")
     print("network.py: all tests passed.")
 
-    # fun experiment: directions of dependencies don't matter! (watch out: directions don't matter as long as all the conditional independencies are the same. this is not always the case!)
+    # fun experiment: directions of dependencies don't matter! (watch out: directions don't matter as long as all the conditional independencies are the same. this is not always the case! only if the v-structures are the same!)
     other_adjacency_matrix: npt.NDArray[np.bool_] = np.array([
         [False, False, False],
         [True, False, True],
@@ -280,6 +283,29 @@ def main():
     print(f"likelihood: {other_trained_gbn.log_likelihood(synthetic_data)}")
     print(f"mu:\n{other_trained_multi_gaussian.mu}")
     print(f"sigma:\n{other_trained_multi_gaussian.sigma}")
+
+
+def main():
+    parser = argparse.ArgumentParser("Learn the parameters for a GBN with a given adjacency matrix.")
+    parser.add_argument("filename",
+                        help="The .npy file with the adjacency matrix of the learned GBN.")
+    parser.add_argument("--trainset",
+                        default="trainset.csv",
+                        help="The .csv file with the data the GBN parameters learned with.")
+    parser.add_argument("--test",
+                        action=TestAction.build(test_network),
+                        help="Tests the implementation (no other arguments needed).")
+    args = parser.parse_args()
+
+    adjacency_matrix = np.load(args.filename)
+    dataset = pd.read_csv(args.trainset).to_numpy()
+
+    gbn = GaussianBayesNet(adjacency_matrix)
+    gbn.fit(dataset)
+    print(f"ML-estimate (log-likelihood={gbn.log_likelihood(dataset)}):")
+    for i in range(graphs.n_nodes(adjacency_matrix)):
+        beta, sigma = gbn.network_parameters[i]
+        print(f"node {i}: \tsigma={round(sigma, 3)}\tbeta={[round(beta_entry, 3) for beta_entry in beta]}")
 
 
 if __name__ == "__main__":

@@ -5,13 +5,15 @@ import clock
 import graphs
 from structure import GreedySearcher
 
-n = 12
+
+train_set = pd.read_csv("my_train.csv").to_numpy()
+n = train_set.shape[1]
 empty_adjacency_matrix = np.full((n, n), False)
 
 small_lambdas = [25, 30, 50, 60, 80, 100, 120, 150, 194, 240, 280, 350, 360, 370]
 medium_lambdas = [4.5, 5, 5.2, 5.5, 6, 8, 10, 15, 21, 22, 23.15, 23.1]
 big_lambdas = [0, 0.2, 0.5, 1, 2, 3]
-train_set = pd.read_csv("my_train.csv").to_numpy()
+
 times = []
 print("starting runs")
 for lambda_reg in small_lambdas + medium_lambdas + big_lambdas:
@@ -55,5 +57,4 @@ for lambda_reg in small_lambdas + medium_lambdas + big_lambdas:
     clock.clear_all()
     graphs.save(top_adjacency_matrix, name=out_file)
 
-print(times)
 np.save("results/times.npy", np.array(times))

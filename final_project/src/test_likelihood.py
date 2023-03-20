@@ -5,9 +5,7 @@ import numpy.typing as npt
 
 import clock
 import graphs
-from dynamic_line import Progress
 from network import GaussianBayesNet
-from structure import GreedySearcher
 from test_arg import TestAction
 
 
@@ -39,27 +37,7 @@ def split_train_test(x: npt.NDArray[np.float64], rotations: int, iteration: int)
     return x_train, x_test
 
 
-def cross_validate_detective(detective: GreedySearcher, x: npt.NDArray[np.float64], rotations=8) -> float:
-    """Calculates the log likelihood with a sort-of cross validation (splits up data into multiple training and test sets and sums up the log likelihood of the test sets). This is done to catch overfitting."""
-    
-    log_likelihoods = np.empty(rotations)
-    progress = Progress(rotations)
-    for i in range(rotations):
-        x_train, x_test = split_train_test(x, rotations, i)
-        clock.start("fitting detective")
-        adjacency_matrix = detective.fit(x_train)
-        clock.stop("fitting detective")
-        gbn = GaussianBayesNet(adjacency_matrix).fit(x_train)
-        log_likelihoods[i] = gbn.log_likelihood(x_test)
-        progress.update(i + 1)
-    # print runtime
-    clock.print_avg("fitting detective")
-    clock.clear_all()
-    # sum up the log likelihoods (mean is not the right tool here!)
-    return np.sum(log_likelihoods, axis=0)
-
-
-def cross_validate_structure(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float64], rotations=8, print_time=True) -> float:
+def cross_validate_structure(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray[np.float64], rotations=DEFAULT_ROTATIONS, print_time=True) -> float:
     """Calculates the log likelihood with a sort-of cross validation (splits up data into multiple training and test sets and sums up the log likelihood of the test sets). This is done to catch overfitting."""
 
     log_likelihoods = np.empty(rotations)
@@ -92,10 +70,10 @@ def train_log_likelihood(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray
 
 def print_report(adjacency_matrix: npt.NDArray[np.bool_], dataset: npt.NDArray[np.float64], rotations: int = DEFAULT_ROTATIONS):
     print(f"number of parameters: {graphs.n_params(adjacency_matrix)}")
-    cross_log_likelihood = cross_validate_structure(adjacency_matrix, dataset, rotations)
-    print(f"total log likelihood of test sets is {cross_log_likelihood}")
     train_set_log_likelihood = train_log_likelihood(adjacency_matrix, dataset)
     print(f"total log likelihood of train set is {train_set_log_likelihood}")
+    cross_log_likelihood = cross_validate_structure(adjacency_matrix, dataset, rotations, print_time=False)
+    print(f"total log likelihood (cross validation) is {cross_log_likelihood}")
 
 
 def test_tests():
