@@ -1,7 +1,7 @@
-import numpy as np
 from enum import Enum
-import numpy.typing as npt
 
+import numpy as np
+import numpy.typing as npt
 
 Edge = tuple[int, int]
 
@@ -127,11 +127,11 @@ def n_params(adjacency_matrix: npt.NDArray[np.bool_]) -> int:
 
 
 def neighbours_in(node: int, adjacency_matrix: npt.NDArray[np.bool_]) -> list[int]:
-    return list(np.where(adjacency_matrix[:, node])[0])
+    return list(np.nonzero(adjacency_matrix[:, node]))
 
 
 def neighbours_out(node: int, adjacency_matrix: npt.NDArray[np.bool_]) -> list[int]:
-    return list(np.where(adjacency_matrix[node])[0])
+    return list(np.nonzero(adjacency_matrix[node]))
 
 
 def all_edges(adjacency_matrix: npt.NDArray[np.bool_]) -> list[Edge]:

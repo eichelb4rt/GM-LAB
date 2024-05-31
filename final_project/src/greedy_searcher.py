@@ -1,11 +1,12 @@
-import numpy as np
-import pandas as pd
-from typing import Self
-from queue import Queue
-import numpy.typing as npt
 from collections import Counter
+from queue import Queue
+from typing import Self
 
-import graphs
+import numpy as np
+import numpy.typing as npt
+import pandas as pd
+
+import graph_utils
 from network import linear_regression
 
 
@@ -33,7 +34,7 @@ class GreedySearcher:
     def __init__(self, initial_adjacency_matrix: npt.NDArray[np.bool_], regularization_constant: float = 0, n_tabu_walks: int = 0, max_tabu_list_size: int = 0, tabu_walk_length: int = 0, n_random_restarts: int = 0, random_walk_length: int = 0, logging_enabled: bool = False) -> None:
         self.initial_adjacency_matrix = initial_adjacency_matrix
         self.regularization_constant = regularization_constant
-        self.n_nodes = graphs.n_nodes(initial_adjacency_matrix)
+        self.n_nodes = graph_utils.n_nodes(initial_adjacency_matrix)
 
         self.top_adjacency_matrix: npt.NDArray[np.bool_]
         self.node_scores: npt.NDArray[np.float64]
@@ -59,7 +60,7 @@ class GreedySearcher:
         self.top_adjacency_matrix = self.initial_adjacency_matrix.copy()
         self.node_scores = np.empty(self.n_nodes, dtype=np.float64)
         for node in range(self.n_nodes):
-            parents = graphs.neighbours_in(node, self.top_adjacency_matrix)
+            parents = graph_utils.neighbours_in(node, self.top_adjacency_matrix)
             self.node_scores[node] = node_score(node, parents, dataset)
 
         # init empty tabu list
@@ -99,13 +100,13 @@ class GreedySearcher:
         delta_e = 0
         while top_improvement > self.regularization_constant * delta_e:
             # construct all possible changes
-            all_possible_changes = graphs.construct_all_changes(self.top_adjacency_matrix)
+            all_possible_changes = graph_utils.construct_all_changes(self.top_adjacency_matrix)
             # find the top change among them
             top_improvement, top_changed_edge, top_change_type, new_node_scores = self.find_top_change(all_possible_changes, dataset)
-            delta_e = graphs.edge_difference(top_change_type)
+            delta_e = graph_utils.edge_difference(top_change_type)
             # we looked through all possible changes and determined the best, now apply it
             if top_improvement > self.regularization_constant * delta_e:
-                graphs.apply_change(self.top_adjacency_matrix, top_changed_edge, top_change_type)
+                graph_utils.apply_change(self.top_adjacency_matrix, top_changed_edge, top_change_type)
                 # update node scores
                 from_node, to_node = top_changed_edge
                 new_from_score, new_to_score = new_node_scores
@@ -129,7 +130,7 @@ class GreedySearcher:
         total_improvement = 0
         for i in range(self.tabu_walk_length):
             # construct all changes that are not tabu
-            all_possible_changes = graphs.construct_all_changes(self.top_adjacency_matrix)
+            all_possible_changes = graph_utils.construct_all_changes(self.top_adjacency_matrix)
             # in the first step, we already visited every possible change (because we came from hill climbing where the last step considered every possible change)
             # so we just get a freebie on this one
             if i == 0:
@@ -139,14 +140,14 @@ class GreedySearcher:
             # find the top change among them
             top_node_score_improvement, top_changed_edge, top_change_type, new_node_scores = self.find_top_change(non_tabu_changes, dataset)
             # we looked through all non-tabu changes and determined the best, now apply it
-            graphs.apply_change(self.top_adjacency_matrix, top_changed_edge, top_change_type)
+            graph_utils.apply_change(self.top_adjacency_matrix, top_changed_edge, top_change_type)
             # update node scores
             from_node, to_node = top_changed_edge
             new_from_score, new_to_score = new_node_scores
             self.node_scores[from_node] = new_from_score
             self.node_scores[to_node] = new_to_score
             # update the total improvement of the objective function
-            delta_e = graphs.edge_difference(top_change_type)
+            delta_e = graph_utils.edge_difference(top_change_type)
             total_improvement += top_node_score_improvement - self.regularization_constant * delta_e
             # one more adjacency matrix to the tabu list :)
             self.update_tabu_list()
@@ -172,11 +173,11 @@ class GreedySearcher:
         # go for a walk
         for _ in range(self.random_walk_length):
             # get a random change (uniformly!)
-            all_possible_changes = graphs.construct_all_changes(self.top_adjacency_matrix)
+            all_possible_changes = graph_utils.construct_all_changes(self.top_adjacency_matrix)
             random_change_type, random_changed_edge = all_possible_changes[np.random.choice(len(all_possible_changes))]
             # apply it
             new_from_score, new_to_score = self.changed_scores(random_changed_edge, random_change_type, dataset)
-            graphs.apply_change(self.top_adjacency_matrix, random_changed_edge, random_change_type)
+            graph_utils.apply_change(self.top_adjacency_matrix, random_changed_edge, random_change_type)
             # update node scores
             from_node, to_node = random_changed_edge
             self.node_scores[from_node] = new_from_score
@@ -187,7 +188,7 @@ class GreedySearcher:
             if self.logging_enabled:
                 self.score_history.append(self.score())
 
-    def find_top_change(self, changes: list[tuple[graphs.ChangeType, graphs.Edge]], dataset: npt.NDArray[np.float64]) -> tuple[float, graphs.Edge, graphs.ChangeType, tuple[float, float]]:
+    def find_top_change(self, changes: list[tuple[graph_utils.ChangeType, graph_utils.Edge]], dataset: npt.NDArray[np.float64]) -> tuple[float, graph_utils.Edge, graph_utils.ChangeType, tuple[float, float]]:
         """Finds the change among the passed changes that yields the best improvement. Returns:
             - the improvement
             - the changed edge as a tuple
@@ -198,8 +199,8 @@ class GreedySearcher:
         top_node_score_improvement = -np.infty
         top_edge_difference = 0
         # keep track of what change was the best
-        top_changed_edge: graphs.Edge
-        top_change_type: graphs.ChangeType
+        top_changed_edge: graph_utils.Edge
+        top_change_type: graph_utils.ChangeType
         new_node_scores: tuple[float, float]
         for change_type, changed_edge in changes:
             # see how this change would impact the scores
@@ -207,7 +208,7 @@ class GreedySearcher:
             from_node, to_node = changed_edge
             # Delta_S(G_1, G)
             improvement = (new_from_score + new_to_score) - (self.node_scores[from_node] + self.node_scores[to_node])
-            current_edge_difference = graphs.edge_difference(change_type)
+            current_edge_difference = graph_utils.edge_difference(change_type)
             # if we get a better improvement (that is worth the edges), update
             if improvement - top_node_score_improvement > self.regularization_constant * (current_edge_difference - top_edge_difference):
                 top_node_score_improvement = improvement
@@ -217,34 +218,34 @@ class GreedySearcher:
                 top_edge_difference = current_edge_difference
         return top_node_score_improvement, top_changed_edge, top_change_type, new_node_scores
 
-    def changed_scores(self, changed_edge: graphs.Edge, change_type: graphs.ChangeType, dataset: npt.NDArray[np.float64]) -> tuple[float, float]:
+    def changed_scores(self, changed_edge: graph_utils.Edge, change_type: graph_utils.ChangeType, dataset: npt.NDArray[np.float64]) -> tuple[float, float]:
         """Returns the new scores of the affected nodes if the change was applied."""
 
         from_node, to_node = changed_edge
         # change the adjacency matrix temporarily
-        graphs.apply_change(self.top_adjacency_matrix, changed_edge, change_type)
+        graph_utils.apply_change(self.top_adjacency_matrix, changed_edge, change_type)
         # figure out how much that improved the scores
-        if change_type == graphs.ChangeType.Addition or change_type == graphs.ChangeType.Deletion:
+        if change_type == graph_utils.ChangeType.Addition or change_type == graph_utils.ChangeType.Deletion:
             # regardless whether the edge was added or deleted, the only distribution updated will be the one of the to_node
-            parents = graphs.neighbours_in(to_node, self.top_adjacency_matrix)
+            parents = graph_utils.neighbours_in(to_node, self.top_adjacency_matrix)
             new_from_score = self.node_scores[from_node]
             new_to_score = node_score(to_node, parents, dataset)
-        elif change_type == graphs.ChangeType.Flip:
+        elif change_type == graph_utils.ChangeType.Flip:
             # the only distributions updated will be the ones of from_node and to_node
-            parents_from = graphs.neighbours_in(from_node, self.top_adjacency_matrix)
+            parents_from = graph_utils.neighbours_in(from_node, self.top_adjacency_matrix)
             new_from_score = node_score(from_node, parents_from, dataset)
-            parents_to = graphs.neighbours_in(to_node, self.top_adjacency_matrix)
+            parents_to = graph_utils.neighbours_in(to_node, self.top_adjacency_matrix)
             new_to_score = node_score(to_node, parents_to, dataset)
         else:
             raise ValueError(f"Unsupported change type: {change_type}")
         # revert the temporal change
-        graphs.revert_change(self.top_adjacency_matrix, changed_edge, change_type)
+        graph_utils.revert_change(self.top_adjacency_matrix, changed_edge, change_type)
         return new_from_score, new_to_score
 
-    def resulting_hash(self, changed_edge: graphs.Edge, change_type: graphs.ChangeType) -> bytes:
-        graphs.apply_change(self.top_adjacency_matrix, changed_edge, change_type)
+    def resulting_hash(self, changed_edge: graph_utils.Edge, change_type: graph_utils.ChangeType) -> bytes:
+        graph_utils.apply_change(self.top_adjacency_matrix, changed_edge, change_type)
         changed_hash = hash_adj(self.top_adjacency_matrix)
-        graphs.revert_change(self.top_adjacency_matrix, changed_edge, change_type)
+        graph_utils.revert_change(self.top_adjacency_matrix, changed_edge, change_type)
         return changed_hash
 
     def update_tabu_list(self):
@@ -258,7 +259,7 @@ class GreedySearcher:
             self.tabu_list_size += 1
 
     def score(self) -> float:
-        return np.sum(self.node_scores) - self.regularization_constant * graphs.n_edges(self.top_adjacency_matrix)
+        return np.sum(self.node_scores) - self.regularization_constant * graph_utils.n_edges(self.top_adjacency_matrix)
 
     @classmethod
     def from_config(cls, config: dict[str, int], initial_adjacency_matrix: npt.NDArray[np.bool_], regularization_constant: float = 0, logging_enabled: bool = False) -> Self:
@@ -288,7 +289,7 @@ def main():
 
                                logging_enabled=False)
     top_adjacency_matrix = detective.fit(dataset)
-    graphs.save(top_adjacency_matrix, name=f"top_{graphs.n_params(top_adjacency_matrix)}")
+    graph_utils.save(top_adjacency_matrix, name=f"top_{graph_utils.n_params(top_adjacency_matrix)}")
 
 
 if __name__ == "__main__":

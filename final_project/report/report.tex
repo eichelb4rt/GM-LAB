@@ -255,7 +255,7 @@ For the score function $p(G | D) \propto p(D | G) \cdot p(G)$, i used the approx
 	\hat{\theta} & := \arg\max\limits_{\theta} p(D | G, \theta)
 \end{align*}
 and the prior
-$$p(G) \propto \frac{1}{|E|^\lambda}$$
+$$p(G) \propto \exp\left(-\lambda \cdot \abs{E}\right)$$
 With this, the objective function can be decomposed into the sum of independent node scores and a regularization term.
 \begin{align*}
 	\arg\max\limits_G p(G | D) & = \arg\max\limits_G \log p(D | G) + \log p(G)                             \\

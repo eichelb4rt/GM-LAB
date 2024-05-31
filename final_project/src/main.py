@@ -1,11 +1,12 @@
-import json
 import argparse
+import json
+
 import numpy as np
 import pandas as pd
 
 import clock
-import graphs
-from structure import GreedySearcher
+import graph_utils
+from src.greedy_searcher import GreedySearcher
 from test_likelihood import print_report
 
 
@@ -44,7 +45,7 @@ def main():
     top_adjacency_matrix = detective.fit(dataset)
     clock.stop("hill climb")
     clock.print_total("hill climb")
-    graphs.save(top_adjacency_matrix, name=args.output_name)
+    graph_utils.save(top_adjacency_matrix, name=args.output_name)
     print(f"learned structure saved to graphs/{args.output_name}.npy")
     if args.log:
         log_file = f"logs/{args.output_name}.npy"

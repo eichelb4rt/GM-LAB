@@ -1,13 +1,13 @@
-import os
 import argparse
-import numpy as np
-import pandas as pd
+import os
 from pathlib import Path
-import numpy.typing as npt
+
 import matplotlib.pyplot as plt
+import numpy as np
+import numpy.typing as npt
+import pandas as pd
 
-import graphs
-
+import graph_utils
 
 FIG_SIZE = (4, 4)
 DPI = 200
@@ -125,7 +125,7 @@ def visualize_tabu_walk(score_history: list[float], method_starts: list[tuple[st
 
 
 def visualize_adjacency_matrix(adjacency_matrix: npt.NDArray[np.bool_], labels: list[str] = None, out_file: str = "dot_encodings/graph.dot"):
-    n_nodes = graphs.n_nodes(adjacency_matrix)
+    n_nodes = graph_utils.n_nodes(adjacency_matrix)
     if labels is None:
         labels = [str(i) for i in range(n_nodes)]
     else:
@@ -135,7 +135,7 @@ def visualize_adjacency_matrix(adjacency_matrix: npt.NDArray[np.bool_], labels: 
     for node in range(n_nodes):
         dot_str += f"\t{node} [label=\"{labels[node]}\"]\n"
     # add all edges
-    for from_node, to_node in graphs.all_edges(adjacency_matrix):
+    for from_node, to_node in graph_utils.all_edges(adjacency_matrix):
         dot_str += f"\t{from_node} -> {to_node}\n"
     # close encoding
     dot_str += "}"

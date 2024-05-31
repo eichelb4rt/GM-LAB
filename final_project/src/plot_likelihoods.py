@@ -1,12 +1,12 @@
-import numpy as np
 import glob
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
-import graphs
-from visualize import FIG_SIZE, DPI
+import graph_utils
 from test_likelihood import cross_validate_structure
-
+from visualize import DPI, FIG_SIZE
 
 test_set = pd.read_csv("my_test.csv").to_numpy()
 
@@ -17,13 +17,13 @@ small_x = []
 small_y = []
 for adjacency_matrix_file in glob.glob("graphs/train_top_*.npy"):
     adjacency_matrix = np.load(adjacency_matrix_file)
-    n_params = graphs.n_params(adjacency_matrix)
+    n_params = graph_utils.n_params(adjacency_matrix)
     log_likelihood = cross_validate_structure(adjacency_matrix, test_set, print_time=False)
     x.append(n_params)
     y.append(log_likelihood)
 for adjacency_matrix_file in glob.glob("graphs/train_small_top_*.npy"):
     adjacency_matrix = np.load(adjacency_matrix_file)
-    n_params = graphs.n_params(adjacency_matrix)
+    n_params = graph_utils.n_params(adjacency_matrix)
     log_likelihood = cross_validate_structure(adjacency_matrix, test_set, print_time=False)
     small_x.append(n_params)
     small_y.append(log_likelihood)

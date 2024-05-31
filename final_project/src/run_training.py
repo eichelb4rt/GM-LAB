@@ -2,9 +2,8 @@ import numpy as np
 import pandas as pd
 
 import clock
-import graphs
-from structure import GreedySearcher
-
+import graph_utils
+from greedy_searcher import GreedySearcher
 
 train_set = pd.read_csv("my_train.csv").to_numpy()
 n = train_set.shape[1]
@@ -50,11 +49,11 @@ for lambda_reg in small_lambdas + medium_lambdas + big_lambdas:
     clock.start("greedy search")
     top_adjacency_matrix = detective.fit(train_set)
     clock.stop("greedy search")
-    out_file = f"train_top_{graphs.n_params(top_adjacency_matrix)}"
+    out_file = f"train_top_{graph_utils.n_params(top_adjacency_matrix)}"
     time_needed = clock.total("greedy search")
     print(f"done: lambda={lambda_reg}\ntime needed: {round(time_needed, 2)}s\noutput: {out_file}")
     times.append(time_needed)
     clock.clear_all()
-    graphs.save(top_adjacency_matrix, name=out_file)
+    graph_utils.save(top_adjacency_matrix, name=out_file)
 
 np.save("results/times.npy", np.array(times))

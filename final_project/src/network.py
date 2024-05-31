@@ -1,10 +1,11 @@
 import argparse
-import numpy as np
-import pandas as pd
 from typing import Self
-import numpy.typing as npt
 
-import graphs
+import numpy as np
+import numpy.typing as npt
+import pandas as pd
+
+import graph_utils
 from test_arg import TestAction
 
 
@@ -14,9 +15,9 @@ def linear_regression(x: npt.NDArray[np.float64], y: npt.NDArray[np.float64], la
     Parameters
     ----------
     x : npt.NDArray[np.float64]
-        m x n matrix, where m is the number of samples and n is the number of features.
+        Feature matrix, shape (n_samples, n_features).
     y : npt.NDArray[np.float64]
-        m long vector, where m is the number of samples.
+        Label matrix, shape (n_samples,).
     lambda_reg : float, optional
         Regularization constant for the linear regression, by default 0.
 
@@ -26,15 +27,34 @@ def linear_regression(x: npt.NDArray[np.float64], y: npt.NDArray[np.float64], la
         Maximum likelihood parameters (offset, weights) and the resulting std deviation.
     """
 
-    m = x.shape[0]
-    n = x.shape[1]
-    x_padded: npt.NDArray[np.float64] = np.c_[np.ones(m), x]
-    weights = np.linalg.solve(x_padded.T @ x_padded + lambda_reg * np.eye(n + 1), x_padded.T @ y)
-    sigma = np.linalg.norm(x_padded @ weights - y) / np.sqrt(m)
+    n_features = x.shape[0]
+    n_samples = x.shape[1]
+    x_padded: npt.NDArray[np.float64] = np.c_[np.ones(n_features), x]
+    weights = np.linalg.solve(x_padded.T @ x_padded + lambda_reg * np.eye(n_samples + 1), x_padded.T @ y)
+    sigma = np.linalg.norm(x_padded @ weights - y) / np.sqrt(n_features)
     return weights, sigma
 
 
 def log_likelihood_linear_regression(x: npt.NDArray[np.float64], y: npt.NDArray[np.float64], beta: npt.NDArray[np.float64], sigma: float) -> float:
+    """Computes the likelihood of observing the data given the parameters of a linear regression. Used to compute the likelihood of a node in a Gaussian Bayesian Network.
+
+    Parameters
+    ----------
+    x : npt.NDArray[np.float64]
+        Feature matrix, shape (n_samples, n_features).
+    y : npt.NDArray[np.float64]
+        Label matrix, shape (n_samples,).
+    beta : npt.NDArray[np.float64]
+        Parameter for beta for y ~ N(beta @ x + beta_0, sigma).
+    sigma : float
+        Parameter sigma for y ~ N(beta @ x + beta_0, sigma).
+
+    Returns
+    -------
+    float
+        Likelihood that y = beta @ x + beta_0 + epsilon, where epsilon ~ N(0, sigma).
+    """
+    
     x_padded: npt.NDArray[np.float64] = np.c_[np.ones(x.shape[0]), x]
     mu = x_padded @ beta
     return - np.sum(0.5 * ((y - mu) / sigma)**2 + np.log(sigma) + 0.5 * np.log(2 * np.pi))
@@ -44,14 +64,14 @@ class MultivariateGaussian:
     def __init__(self, mu: npt.NDArray[np.float64], sigma: npt.NDArray[np.float64]) -> None:
         self.mu = mu
         self.sigma = sigma
-        self.dimension = mu.shape[0]
+        self.n_variables = mu.shape[0]
 
     def sample(self, n_samples: int) -> npt.NDArray[np.float64]:
-        """Returns a n_samples x dimension matrix of samples that follow this multivariate gaussian distribution."""
+        """Returns a n_samples x n_variables matrix of samples that follow this multivariate gaussian distribution."""
 
         L = np.linalg.cholesky(self.sigma)
         # generate a dim x n_samples matrix of samples (n_samples samples that follow a d-dimensional standard gaussian)
-        standard_normal_samples = np.random.normal(size=self.dimension * n_samples).reshape(self.dimension, n_samples).astype(np.float64)
+        standard_normal_samples = np.random.normal(size=self.n_variables * n_samples).reshape(self.n_variables, n_samples).astype(np.float64)
         # copy the mean vector along the samples
         offset_matrix = np.repeat(self.mu[:, np.newaxis], n_samples, axis=1)
         # stretch and offset every sample, then transpose the matrix so we have a (n_samples x dim) matrix
@@ -72,11 +92,11 @@ class GaussianBayesNet:
 
         self.adjacency_matrix = adjacency_matrix
         self.network_parameters = network_parameters
-        self.n = graphs.n_nodes(adjacency_matrix)
-        for i in range(self.n):
+        self.n_nodes = graph_utils.n_nodes(adjacency_matrix)
+        for i in range(self.n_nodes):
             # i know (...) == False can be written as not (...), but i think this is more readable because i'm reading the contents of the adjacency matrix
             assert adjacency_matrix[i, i] == False, f"A node cannot be the parent of itself (node: {i})."
-        assert not graphs.has_cycle(adjacency_matrix), "Adjacency matrix has to represent a DAG (a cycle was found)."
+        assert not graph_utils.has_cycle(adjacency_matrix), "Adjacency matrix has to represent a DAG (a cycle was found)."
 
     def fit(self, dataset: npt.NDArray[np.float64], lambda_reg: float = 0) -> Self:
         """Fits the parameters to the data, given the adjacency matrix.
@@ -84,13 +104,13 @@ class GaussianBayesNet:
         Parameters
         ----------
         dataset : npt.NDArray[np.float64]
-            m x n matrix, where m is the number of samples and n is the number of features.
+            Feature matrix, shape (n_samples, n_features).
         lambda_reg : float
             Regularization constant for the linear regression that is done in order to estimate beta and beta_0.
         """
 
         self.network_parameters = {}
-        for i in range(self.n):
+        for i in range(self.n_nodes):
             # get the parents
             parents = self.parents(i)
             # slice the data
@@ -102,7 +122,7 @@ class GaussianBayesNet:
         return self
 
     def parents(self, node: int) -> list[int]:
-        return graphs.neighbours_in(node, self.adjacency_matrix)
+        return graph_utils.neighbours_in(node, self.adjacency_matrix)
 
     def log_likelihood(self, dataset: npt.NDArray[np.float64]) -> float:
         """Log likelihood of observing the given data.
@@ -110,7 +130,7 @@ class GaussianBayesNet:
         Parameters
         ----------
         dataset : npt.NDArray[np.float64]
-            m x n matrix, where m is the number of samples and n is the number of features.
+            Feature matrix, shape (n_samples, n_features).
 
         Returns
         -------
@@ -118,9 +138,8 @@ class GaussianBayesNet:
             Log likelihood of observing the data.
         """
 
-        m = dataset.shape[0]
         log_likelihood = 0
-        for i in range(self.n):
+        for i in range(self.n_nodes):
             # get the parents
             parents = self.parents(i)
             # slice the data
@@ -136,17 +155,17 @@ class GaussianBayesNet:
         """Generates the equivalent multivariate gaussian."""
 
         # calculate mean vector
-        mean_vector = np.empty(self.n, dtype=np.float64)
-        mean_done = np.full(self.n, False)
+        mean_vector = np.empty(self.n_nodes, dtype=np.float64)
+        mean_done = np.full(self.n_nodes, False)
         # start with the root_nodes
-        root_nodes = [node for node in range(self.n) if len(self.parents(node)) == 0]
+        root_nodes = [node for node in range(self.n_nodes) if len(self.parents(node)) == 0]
         for root_node in root_nodes:
             beta, sigma = self.network_parameters[root_node]
             mean_vector[root_node] = beta[0]
             mean_done[root_node] = True
         # calculate mu_i when pa(i) are all done
         while not np.all(mean_done):
-            for node in range(self.n):
+            for node in range(self.n_nodes):
                 # if the node is already computed, go on
                 if mean_done[node]:
                     continue
@@ -162,8 +181,8 @@ class GaussianBayesNet:
                 mean_vector[node] = beta.T @ parent_means_padded
                 mean_done[node] = True
         # calculate covariance matrix
-        covariance_matrix = np.zeros((self.n, self.n), dtype=np.float64)
-        covariance_done = np.full(self.n, False)
+        covariance_matrix = np.zeros((self.n_nodes, self.n_nodes), dtype=np.float64)
+        covariance_done = np.full(self.n_nodes, False)
         discovered_order: list[int] = []
         # root nodes first
         for root_node in root_nodes:
@@ -174,7 +193,7 @@ class GaussianBayesNet:
         # in the following comments Sigma_ij (upper case S) refers to the covariance matrix, and sigma_i^2 refers to the variance in the conditional distribution p(i | pa(i)) ~ N(beta_0 + beta^T * x, sigma_i^2).
         # calculate Sigma_i,j when Sigma_pa(i),j are all done
         while not np.all(covariance_done):
-            for node in range(self.n):
+            for node in range(self.n_nodes):
                 # if the node is already computed, go on
                 if covariance_done[node]:
                     continue
@@ -303,7 +322,7 @@ def main():
     gbn = GaussianBayesNet(adjacency_matrix)
     gbn.fit(dataset)
     print(f"ML-estimate (log-likelihood={gbn.log_likelihood(dataset)}):")
-    for i in range(graphs.n_nodes(adjacency_matrix)):
+    for i in range(graph_utils.n_nodes(adjacency_matrix)):
         beta, sigma = gbn.network_parameters[i]
         print(f"node {i}: \tsigma={round(sigma, 3)}\tbeta={[round(beta_entry, 3) for beta_entry in beta]}")
 

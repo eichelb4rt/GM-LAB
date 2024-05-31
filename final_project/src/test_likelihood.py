@@ -1,13 +1,13 @@
 import argparse
+
 import numpy as np
-import pandas as pd
 import numpy.typing as npt
+import pandas as pd
 
 import clock
-import graphs
+import graph_utils
 from network import GaussianBayesNet
 from test_arg import TestAction
-
 
 DEFAULT_ROTATIONS = 8
 
@@ -69,7 +69,7 @@ def train_log_likelihood(adjacency_matrix: npt.NDArray[np.bool_], x: npt.NDArray
 
 
 def print_report(adjacency_matrix: npt.NDArray[np.bool_], dataset: npt.NDArray[np.float64], rotations: int = DEFAULT_ROTATIONS):
-    print(f"number of parameters: {graphs.n_params(adjacency_matrix)}")
+    print(f"number of parameters: {graph_utils.n_params(adjacency_matrix)}")
     train_set_log_likelihood = train_log_likelihood(adjacency_matrix, dataset)
     print(f"total log likelihood of train set is {train_set_log_likelihood}")
     cross_log_likelihood = cross_validate_structure(adjacency_matrix, dataset, rotations, print_time=False)
