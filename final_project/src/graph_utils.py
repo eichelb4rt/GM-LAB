@@ -127,11 +127,11 @@ def n_params(adjacency_matrix: npt.NDArray[np.bool_]) -> int:
 
 
 def neighbours_in(node: int, adjacency_matrix: npt.NDArray[np.bool_]) -> list[int]:
-    return list(np.nonzero(adjacency_matrix[:, node]))
+    return np.array(np.nonzero(adjacency_matrix[:, node])).flatten()
 
 
 def neighbours_out(node: int, adjacency_matrix: npt.NDArray[np.bool_]) -> list[int]:
-    return list(np.nonzero(adjacency_matrix[node]))
+    return np.array(np.nonzero(adjacency_matrix[node, :])).flatten()
 
 
 def all_edges(adjacency_matrix: npt.NDArray[np.bool_]) -> list[Edge]:
